@@ -120,11 +120,6 @@ export class Bet {
   }
 
   static rehydrate(props: BetProps): BetErrors.BetResult<Bet> {
-    const invariantResult = Bet.ensureInvariants(props);
-    if (!invariantResult.success) {
-      return invariantResult;
-    }
-
     return Bet.success(new Bet(props));
   }
 
