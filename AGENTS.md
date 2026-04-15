@@ -222,7 +222,14 @@ Frontend state guidance:
 
 ## Testing Requirements
 
-Tests are mandatory, not optional polish.
+Tests are part of the challenge deliverable, but they are not implied by every feature request.
+
+Operational rule for agents:
+
+- when the user asks for a feature or code change, implement only the requested functionality by default
+- do not add or modify tests unless the user explicitly asks for tests
+- if a task includes both implementation and tests, or explicitly requests coverage, then add the appropriate tests
+- do not interpret a generic feature request as implicit authorization to expand scope into test writing
 
 At minimum, cover:
 
