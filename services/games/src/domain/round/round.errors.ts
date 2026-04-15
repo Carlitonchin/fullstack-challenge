@@ -135,6 +135,31 @@ export class ServerSeedHashIsRequiredError extends DomainError<"SERVER_SEED_HASH
   }
 }
 
+export class ProvablyFairStrategyIdIsRequiredError extends DomainError<"PROVABLY_FAIR_STRATEGY_ID_IS_REQUIRED"> {
+  override readonly name = "PROVABLY_FAIR_STRATEGY_ID_IS_REQUIRED" as const;
+
+  constructor() {
+    super("Provably fair strategy id is required");
+  }
+}
+
+export class ProvablyFairNonceIsRequiredError extends DomainError<"PROVABLY_FAIR_NONCE_IS_REQUIRED"> {
+  override readonly name = "PROVABLY_FAIR_NONCE_IS_REQUIRED" as const;
+
+  constructor() {
+    super("Provably fair nonce is required");
+  }
+}
+
+export class RoundProvablyFairStrategyDefinitionMismatchError extends DomainError<"ROUND_PROVABLY_FAIR_STRATEGY_DEFINITION_MISMATCH"> {
+  override readonly name =
+    "ROUND_PROVABLY_FAIR_STRATEGY_DEFINITION_MISMATCH" as const;
+
+  constructor() {
+    super("Round provably fair strategy definition does not match the round strategy id");
+  }
+}
+
 export class CrashPointMustBeGreaterThanOneError extends DomainError<"CRASH_POINT_MUST_BE_GREATER_THAN_ONE"> {
   override readonly name = "CRASH_POINT_MUST_BE_GREATER_THAN_ONE" as const;
 
@@ -220,6 +245,9 @@ export type RoundDomainError =
   | RoundIdIsRequiredError
   | ServerSeedIsRequiredError
   | ServerSeedHashIsRequiredError
+  | ProvablyFairStrategyIdIsRequiredError
+  | ProvablyFairNonceIsRequiredError
+  | RoundProvablyFairStrategyDefinitionMismatchError
   | CrashPointMustBeGreaterThanOneError
   | BettingCloseTimeMustBeAfterCreationTimeError
   | StartedRoundsMustHaveAStartTimeError

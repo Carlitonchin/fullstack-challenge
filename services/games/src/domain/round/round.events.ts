@@ -7,6 +7,8 @@ type RoundEventBase<TType extends string> = {
 export type RoundCreatedDomainEvent = RoundEventBase<"round.created"> & {
   crashPoint: number;
   bettingClosesAt: Date;
+  provablyFairStrategyId: string;
+  nonce: string;
   serverSeedHash: string;
 };
 

@@ -4,12 +4,12 @@ export type ProvablyFairInputs = {
 };
 
 export type ProvablyFairCommitment = {
-  algorithm: string;
+  strategyId: string;
   serverSeedHash: string;
 };
 
 export type ProvablyFairOutcome = {
-  algorithm: string;
+  strategyId: string;
   serverSeedHash: string;
   crashPoint: number;
 };

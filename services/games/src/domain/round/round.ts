@@ -1,5 +1,6 @@
 import * as RoundErrors from "./round.errors";
 import { type RoundDomainEvent } from "./round.events";
+import type { ProvablyFairStrategyDefinition } from "@games/domain/provably-fair/provably-fair-strategy-definition";
 
 export enum RoundStatus {
   BETTING_OPEN = "BETTING_OPEN",
@@ -10,10 +11,34 @@ export enum RoundStatus {
   SETTLED = "SETTLED",
 }
 
+const DEFAULT_PROVABLY_FAIR_STRATEGY_ID = "casino-crash-v1";
+
+export type RoundProvablyFairPublicSnapshot = {
+  roundId: string;
+  strategyId: string;
+  strategyVersion: string;
+  strategyDisplayName: string;
+  strategyDescription: string;
+  algorithm: string;
+  hashAlgorithm: string;
+  outcomeAlgorithm: string;
+  nonce: string;
+  serverSeedHash: string;
+  serverSeed: string | null;
+  isServerSeedRevealed: boolean;
+  crashPoint: number;
+  crashMultiplier: number | null;
+  houseEdgeDescription: string;
+  verificationFormula: string;
+  verificationSteps: { order: number; instruction: string }[];
+};
+
 type RoundProps = {
   id: string;
   status: RoundStatus;
   crashPoint: number;
+  provablyFairStrategyId: string;
+  nonce: string;
   serverSeedHash: string;
   serverSeed: string;
   startedAt: Date | null;
@@ -29,6 +54,8 @@ type RoundProps = {
 type NewRoundProps = {
   id: string;
   crashPoint: number;
+  provablyFairStrategyId?: string;
+  nonce?: string;
   serverSeedHash: string;
   createdAt: Date;
   bettingWindowInSeconds: number;
@@ -39,6 +66,8 @@ export class Round {
   private _id: string;
   private _status: RoundStatus;
   private _crashPoint: number;
+  private _provablyFairStrategyId: string;
+  private _nonce: string;
   private _serverSeedHash: string;
   private _serverSeed: string;
   private _startedAt: Date | null;
@@ -55,6 +84,8 @@ export class Round {
     this._id = props.id;
     this._status = props.status;
     this._crashPoint = props.crashPoint;
+    this._provablyFairStrategyId = props.provablyFairStrategyId;
+    this._nonce = props.nonce;
     this._serverSeedHash = props.serverSeedHash;
     this._serverSeed = props.serverSeed;
     this._startedAt = props.startedAt;
@@ -83,6 +114,9 @@ export class Round {
       id: props.id,
       status: RoundStatus.BETTING_OPEN,
       crashPoint: props.crashPoint,
+      provablyFairStrategyId:
+        props.provablyFairStrategyId ?? DEFAULT_PROVABLY_FAIR_STRATEGY_ID,
+      nonce: props.nonce ?? props.id,
       serverSeedHash: props.serverSeedHash,
       serverSeed: props.serverSeed,
       startedAt: null,
@@ -108,6 +142,8 @@ export class Round {
       occurredAt: props.createdAt,
       crashPoint: round.crashPoint,
       bettingClosesAt: round.bettingClosesAt,
+      provablyFairStrategyId: round.provablyFairStrategyId,
+      nonce: round.nonce,
       serverSeedHash: round.serverSeedHash,
     });
 
@@ -128,6 +164,14 @@ export class Round {
 
   get crashPoint(): number {
     return this._crashPoint;
+  }
+
+  get provablyFairStrategyId(): string {
+    return this._provablyFairStrategyId;
+  }
+
+  get nonce(): string {
+    return this._nonce;
   }
 
   get serverSeedHash(): string {
@@ -198,6 +242,44 @@ export class Round {
 
   get isSettled(): boolean {
     return this._status === RoundStatus.SETTLED;
+  }
+
+  get isTerminal(): boolean {
+    return this.isCrashed || this.isSettled || this.isError;
+  }
+
+  get isServerSeedRevealed(): boolean {
+    return this.isTerminal;
+  }
+
+  projectProvablyFairPublicSnapshot(
+    strategyDefinition: ProvablyFairStrategyDefinition,
+  ): RoundErrors.RoundResult<RoundProvablyFairPublicSnapshot> {
+    if (strategyDefinition.id !== this.provablyFairStrategyId) {
+      return Round.failure(
+        new RoundErrors.RoundProvablyFairStrategyDefinitionMismatchError(),
+      );
+    }
+
+    return Round.success({
+      roundId: this.id,
+      strategyId: strategyDefinition.id,
+      strategyVersion: strategyDefinition.version,
+      strategyDisplayName: strategyDefinition.displayName,
+      strategyDescription: strategyDefinition.description,
+      algorithm: strategyDefinition.algorithm,
+      hashAlgorithm: strategyDefinition.hashAlgorithm,
+      outcomeAlgorithm: strategyDefinition.outcomeAlgorithm,
+      nonce: this.nonce,
+      serverSeedHash: this.serverSeedHash,
+      serverSeed: this.isServerSeedRevealed ? this.serverSeed : null,
+      isServerSeedRevealed: this.isServerSeedRevealed,
+      crashPoint: this.crashPoint,
+      crashMultiplier: this.crashMultiplier,
+      houseEdgeDescription: strategyDefinition.houseEdgeDescription,
+      verificationFormula: strategyDefinition.verificationFormula,
+      verificationSteps: strategyDefinition.verificationSteps,
+    });
   }
 
   closeBetting(closedAt: Date = new Date()): RoundErrors.RoundResult {
@@ -356,6 +438,16 @@ export class Round {
 
     if (!props.serverSeedHash.trim()) {
       return Round.failure(new RoundErrors.ServerSeedHashIsRequiredError());
+    }
+
+    if (!props.provablyFairStrategyId.trim()) {
+      return Round.failure(
+        new RoundErrors.ProvablyFairStrategyIdIsRequiredError(),
+      );
+    }
+
+    if (!props.nonce.trim()) {
+      return Round.failure(new RoundErrors.ProvablyFairNonceIsRequiredError());
     }
 
     if (props.crashPoint <= 1) {
