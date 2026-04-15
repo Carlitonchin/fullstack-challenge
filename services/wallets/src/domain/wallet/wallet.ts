@@ -123,6 +123,7 @@ export class Wallet {
     }
 
     const wallet = walletResult.data!;
+    const seenLedgerSequences = new Set<bigint>();
 
     const orderedOperations = [...props.operations].sort((left, right) => {
       const leftSequence = left.ledgerSequence;
@@ -140,6 +141,20 @@ export class Wallet {
     });
 
     for (const operation of orderedOperations) {
+      if (operation.ledgerSequence <= 0n) {
+        return Wallet.failure(
+          new WalletErrors.WalletOperationLedgerSequenceMustBeGreaterThanZeroError(),
+        );
+      }
+
+      if (seenLedgerSequences.has(operation.ledgerSequence)) {
+        return Wallet.failure(
+          new WalletErrors.WalletOperationLedgerSequenceMustBeUniqueError(),
+        );
+      }
+
+      seenLedgerSequences.add(operation.ledgerSequence);
+
       const operationResult =
         operation.type === "credit"
           ? wallet.applyCredit(operation, false)

@@ -104,20 +104,12 @@ export class WalletOperationIdIsRequiredError extends DomainError<"WALLET_OPERAT
   }
 }
 
-export class WalletOperationAlreadyProcessedError extends DomainError<"WALLET_OPERATION_ALREADY_PROCESSED"> {
-  override readonly name = "WALLET_OPERATION_ALREADY_PROCESSED" as const;
-
-  constructor() {
-    super("Wallet operation was already processed");
-  }
-}
-
-export class WalletOperationLedgerSequenceIsRequiredError extends DomainError<"WALLET_OPERATION_LEDGER_SEQUENCE_IS_REQUIRED"> {
+export class WalletOperationLedgerSequenceMustBeUniqueError extends DomainError<"WALLET_OPERATION_LEDGER_SEQUENCE_MUST_BE_UNIQUE"> {
   override readonly name =
-    "WALLET_OPERATION_LEDGER_SEQUENCE_IS_REQUIRED" as const;
+    "WALLET_OPERATION_LEDGER_SEQUENCE_MUST_BE_UNIQUE" as const;
 
   constructor() {
-    super("Wallet operation ledger sequence is required");
+    super("Wallet operation ledger sequence must be unique");
   }
 }
 
@@ -143,8 +135,7 @@ export type WalletDomainError =
   | UpdatedAtCannotBeBeforeCreatedAtError
   | WalletOperationCannotHappenBeforeCreationError
   | WalletOperationIdIsRequiredError
-  | WalletOperationAlreadyProcessedError
-  | WalletOperationLedgerSequenceIsRequiredError
+  | WalletOperationLedgerSequenceMustBeUniqueError
   | WalletOperationLedgerSequenceMustBeGreaterThanZeroError;
 
 export type WalletResult<T = undefined> =
