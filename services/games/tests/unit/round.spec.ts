@@ -2,10 +2,13 @@
 
 import { describe, expect, it } from "bun:test";
 
+import { ProvablyFairStrategyDefinition } from "../../src/domain/provably-fair/provably-fair-strategy-definition";
 import { Round, RoundStatus } from "../../src/domain/round/round";
 
 const ROUND_ID = "round-1";
 const REHYDRATED_ROUND_ID = "round-2";
+const STRATEGY_ID = "casino-crash-v1";
+const OTHER_STRATEGY_ID = "casino-crash-v2";
 const SERVER_SEED = "seed";
 const SERVER_SEED_HASH = "seed-hash";
 const ERROR_REASON = "wallet debit timed out";
@@ -14,6 +17,36 @@ const CREATED_AT = new Date("2026-04-15T12:00:00.000Z");
 const BETTING_WINDOW_IN_SECONDS = 10;
 const CRASH_POINT = 2.37;
 const REHYDRATED_CRASH_POINT = 3.14;
+const STRATEGY_VERSION = "1.0.0";
+const STRATEGY_DISPLAY_NAME = "Casino Crash HMAC-SHA256";
+const STRATEGY_DESCRIPTION = "Versioned public definition for a crash strategy.";
+const STRATEGY_ALGORITHM = "crash-hmac-sha256-v1";
+const STRATEGY_HASH_ALGORITHM = "SHA-256(serverSeed)";
+const STRATEGY_OUTCOME_ALGORITHM = "HMAC-SHA256(serverSeed, nonce)";
+const STRATEGY_HOUSE_EDGE_DESCRIPTION =
+  "If the full HMAC digest interpreted as hexadecimal is divisible by 101, the result is 1.00.";
+const STRATEGY_VERIFICATION_FORMULA =
+  "Otherwise take the first 13 hex characters of the HMAC digest and compute the crash point formula.";
+const STRATEGY_VERIFICATION_STEPS = [
+  {
+    order: 2,
+    instruction: "Compute the round HMAC digest.",
+  },
+  {
+    order: 1,
+    instruction: "Verify the published server seed hash.",
+  },
+] as const;
+const SORTED_STRATEGY_VERIFICATION_STEPS = [
+  {
+    order: 1,
+    instruction: "Verify the published server seed hash.",
+  },
+  {
+    order: 2,
+    instruction: "Compute the round HMAC digest.",
+  },
+] as const;
 
 const BETTING_CLOSE_OFFSET_SECONDS = BETTING_WINDOW_IN_SECONDS;
 const START_OFFSET_SECONDS = BETTING_CLOSE_OFFSET_SECONDS + 1;
@@ -49,10 +82,29 @@ function createRound() {
     Round.new({
       id: ROUND_ID,
       crashPoint: CRASH_POINT,
+      provablyFairStrategyId: STRATEGY_ID,
+      nonce: ROUND_ID,
       serverSeedHash: SERVER_SEED_HASH,
       serverSeed: SERVER_SEED,
       createdAt: CREATED_AT,
       bettingWindowInSeconds: BETTING_WINDOW_IN_SECONDS,
+    }),
+  );
+}
+
+function createStrategyDefinition(strategyId: string = STRATEGY_ID) {
+  return assertSuccess(
+    ProvablyFairStrategyDefinition.create({
+      id: strategyId,
+      algorithm: STRATEGY_ALGORITHM,
+      version: STRATEGY_VERSION,
+      displayName: STRATEGY_DISPLAY_NAME,
+      description: STRATEGY_DESCRIPTION,
+      hashAlgorithm: STRATEGY_HASH_ALGORITHM,
+      outcomeAlgorithm: STRATEGY_OUTCOME_ALGORITHM,
+      houseEdgeDescription: STRATEGY_HOUSE_EDGE_DESCRIPTION,
+      verificationFormula: STRATEGY_VERIFICATION_FORMULA,
+      verificationSteps: [...STRATEGY_VERIFICATION_STEPS],
     }),
   );
 }
@@ -78,6 +130,8 @@ describe("Round", () => {
       type: "round.created",
       roundId: ROUND_ID,
       crashPoint: CRASH_POINT,
+      provablyFairStrategyId: STRATEGY_ID,
+      nonce: ROUND_ID,
       serverSeedHash: SERVER_SEED_HASH,
       bettingClosesAt,
     });
@@ -89,6 +143,8 @@ describe("Round", () => {
     const result = Round.new({
       id: ROUND_ID,
       crashPoint: CRASH_POINT,
+      provablyFairStrategyId: STRATEGY_ID,
+      nonce: ROUND_ID,
       serverSeedHash: SERVER_SEED_HASH,
       serverSeed: SERVER_SEED,
       createdAt: CREATED_AT,
@@ -110,6 +166,8 @@ describe("Round", () => {
       id: REHYDRATED_ROUND_ID,
       status: RoundStatus.CRASHED,
       crashPoint: REHYDRATED_CRASH_POINT,
+      provablyFairStrategyId: STRATEGY_ID,
+      nonce: REHYDRATED_ROUND_ID,
       serverSeedHash: SERVER_SEED_HASH,
       serverSeed: SERVER_SEED,
       startedAt: atOffsetSeconds(START_OFFSET_SECONDS),
@@ -126,7 +184,78 @@ describe("Round", () => {
 
     expect(round.status).toBe(RoundStatus.CRASHED);
     expect(round.crashMultiplier).toBe(REHYDRATED_CRASH_POINT);
+    expect(round.provablyFairStrategyId).toBe(STRATEGY_ID);
+    expect(round.nonce).toBe(REHYDRATED_ROUND_ID);
     expect(round.pullDomainEvents()).toHaveLength(0);
+  });
+
+  it("projects public provably fair data without revealing the seed before the round ends", () => {
+    const round = createRound();
+    const strategyDefinition = createStrategyDefinition();
+
+    const result = round.projectProvablyFairPublicSnapshot(strategyDefinition);
+    const snapshot = assertSuccess(result);
+
+    expect(snapshot).toEqual({
+      roundId: ROUND_ID,
+      strategyId: STRATEGY_ID,
+      strategyVersion: STRATEGY_VERSION,
+      strategyDisplayName: STRATEGY_DISPLAY_NAME,
+      strategyDescription: STRATEGY_DESCRIPTION,
+      algorithm: STRATEGY_ALGORITHM,
+      hashAlgorithm: STRATEGY_HASH_ALGORITHM,
+      outcomeAlgorithm: STRATEGY_OUTCOME_ALGORITHM,
+      nonce: ROUND_ID,
+      serverSeedHash: SERVER_SEED_HASH,
+      serverSeed: null,
+      isServerSeedRevealed: false,
+      crashPoint: CRASH_POINT,
+      crashMultiplier: null,
+      houseEdgeDescription: STRATEGY_HOUSE_EDGE_DESCRIPTION,
+      verificationFormula: STRATEGY_VERIFICATION_FORMULA,
+      verificationSteps: [...SORTED_STRATEGY_VERIFICATION_STEPS],
+    });
+  });
+
+  it("reveals the server seed in the public projection once the round is terminal", () => {
+    const round = createRound();
+    const strategyDefinition = createStrategyDefinition();
+
+    expect(round.closeBetting(atOffsetSeconds(BETTING_CLOSE_OFFSET_SECONDS)).success).toBe(
+      true,
+    );
+    expect(round.start(atOffsetSeconds(START_OFFSET_SECONDS)).success).toBe(
+      true,
+    );
+    expect(round.crash(atOffsetSeconds(CRASH_OFFSET_SECONDS)).success).toBe(
+      true,
+    );
+
+    const snapshot = assertSuccess(
+      round.projectProvablyFairPublicSnapshot(strategyDefinition),
+    );
+
+    expect(snapshot.isServerSeedRevealed).toBe(true);
+    expect(snapshot.serverSeed).toBe(SERVER_SEED);
+    expect(snapshot.crashMultiplier).toBe(CRASH_POINT);
+  });
+
+  it("rejects projecting public provably fair data when the strategy definition does not match the round", () => {
+    const round = createRound();
+    const otherStrategyDefinition = createStrategyDefinition(OTHER_STRATEGY_ID);
+
+    const result = round.projectProvablyFairPublicSnapshot(
+      otherStrategyDefinition,
+    );
+
+    expect(result.success).toBe(false);
+    if (result.success) {
+      throw new Error("expected failure");
+    }
+
+    expect(result.error.name).toBe(
+      "ROUND_PROVABLY_FAIR_STRATEGY_DEFINITION_MISMATCH",
+    );
   });
 
   it("transitions through close betting, start, crash, and settle with events", () => {
