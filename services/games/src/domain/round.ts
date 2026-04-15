@@ -1,3 +1,5 @@
+import { type RoundDomainEvent } from "./round.events";
+
 export enum RoundStatus {
   BETTING_OPEN = "BETTING_OPEN",
   BETTING_CLOSED = "BETTING_CLOSED",
@@ -46,6 +48,7 @@ export class Round {
   private _errorReason: string | null;
   private _refundRequired: boolean;
   private _createdAt: Date;
+  private _domainEvents: RoundDomainEvent[];
 
   private constructor(props: RoundProps) {
     this._id = props.id;
@@ -61,6 +64,7 @@ export class Round {
     this._errorReason = props.errorReason;
     this._refundRequired = props.refundRequired;
     this._createdAt = props.createdAt;
+    this._domainEvents = [];
     this.ensureInvariants();
   }
 
@@ -73,7 +77,7 @@ export class Round {
       props.createdAt.getTime() + props.bettingWindowInSeconds * 1000,
     );
 
-    return new Round({
+    const round = new Round({
       id: props.id,
       status: RoundStatus.BETTING_OPEN,
       crashPoint: props.crashPoint,
@@ -88,6 +92,17 @@ export class Round {
       refundRequired: false,
       createdAt: props.createdAt,
     });
+
+    round.recordDomainEvent({
+      type: "round.created",
+      roundId: round.id,
+      occurredAt: props.createdAt,
+      crashPoint: round.crashPoint,
+      bettingClosesAt: round.bettingClosesAt,
+      serverSeedHash: round.serverSeedHash,
+    });
+
+    return round;
   }
 
   static rehydrate(props: RoundProps): Round {
@@ -146,6 +161,12 @@ export class Round {
     return this._createdAt;
   }
 
+  pullDomainEvents(): RoundDomainEvent[] {
+    const events = [...this._domainEvents];
+    this._domainEvents = [];
+    return events;
+  }
+
   get isBettingOpen(): boolean {
     return this._status === RoundStatus.BETTING_OPEN;
   }
@@ -180,6 +201,11 @@ export class Round {
     }
 
     this._status = RoundStatus.BETTING_CLOSED;
+    this.recordDomainEvent({
+      type: "round.betting-closed",
+      roundId: this.id,
+      occurredAt: closedAt,
+    });
   }
 
   start(startedAt: Date = new Date()): void {
@@ -193,6 +219,11 @@ export class Round {
 
     this._status = RoundStatus.IN_PROGRESS;
     this._startedAt = startedAt;
+    this.recordDomainEvent({
+      type: "round.started",
+      roundId: this.id,
+      occurredAt: startedAt,
+    });
   }
 
   crash(crashedAt: Date = new Date()): void {
@@ -207,6 +238,12 @@ export class Round {
     this._status = RoundStatus.CRASHED;
     this._crashedAt = crashedAt;
     this._crashMultiplier = this._crashPoint;
+    this.recordDomainEvent({
+      type: "round.crashed",
+      roundId: this.id,
+      occurredAt: crashedAt,
+      crashMultiplier: this._crashPoint,
+    });
   }
 
   fail(errorReason: string, failedAt: Date = new Date()): void {
@@ -234,6 +271,13 @@ export class Round {
     this._failedAt = failedAt;
     this._errorReason = errorReason;
     this._refundRequired = true;
+    this.recordDomainEvent({
+      type: "round.failed",
+      roundId: this.id,
+      occurredAt: failedAt,
+      errorReason,
+      refundRequired: true,
+    });
   }
 
   settle(): void {
@@ -242,6 +286,11 @@ export class Round {
     }
 
     this._status = RoundStatus.SETTLED;
+    this.recordDomainEvent({
+      type: "round.settled",
+      roundId: this.id,
+      occurredAt: new Date(),
+    });
   }
 
   canAcceptBets(at: Date = new Date()): boolean {
@@ -308,5 +357,9 @@ export class Round {
     if (this._status === RoundStatus.ERROR && !this._refundRequired) {
       throw new Error("Errored rounds must require a refund");
     }
+  }
+
+  private recordDomainEvent(event: RoundDomainEvent): void {
+    this._domainEvents.push(event);
   }
 }
