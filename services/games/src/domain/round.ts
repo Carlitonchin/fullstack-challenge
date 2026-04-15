@@ -1,3 +1,31 @@
+import {
+  BettingCannotCloseBeforeRoundCreationError,
+  BettingCloseTimeMustBeAfterCreationTimeError,
+  BettingWindowMustBeGreaterThanZeroError,
+  CrashPointMustBeGreaterThanOneError,
+  CrashedOrSettledRoundsMustHaveACrashMultiplierError,
+  CrashedOrSettledRoundsMustHaveACrashTimeError,
+  ErrorReasonIsRequiredError,
+  ErroredRoundsMustHaveAFailureTimeError,
+  ErroredRoundsMustHaveAnErrorReasonError,
+  ErroredRoundsMustRequireARefundError,
+  RoundCanOnlyCloseBettingFromBettingOpenError,
+  RoundCanOnlyCrashFromInProgressError,
+  RoundCanOnlyFailFromANonTerminalStatusError,
+  RoundCanOnlySettleFromCrashedStatusError,
+  RoundCanOnlyStartFromBettingClosedError,
+  RoundCannotCrashBeforeItStartsError,
+  RoundCannotFailBeforeCreationError,
+  RoundCannotFailBeforeItCrashesError,
+  RoundCannotFailBeforeItStartsError,
+  RoundCannotStartBeforeCreationError,
+  type RoundDomainError,
+  RoundIdIsRequiredError,
+  type RoundResult,
+  ServerSeedHashIsRequiredError,
+  ServerSeedIsRequiredError,
+  StartedRoundsMustHaveAStartTimeError,
+} from "./round.errors";
 import { type RoundDomainEvent } from "./round.events";
 
 export enum RoundStatus {
@@ -65,19 +93,18 @@ export class Round {
     this._refundRequired = props.refundRequired;
     this._createdAt = props.createdAt;
     this._domainEvents = [];
-    this.ensureInvariants();
   }
 
-  static new(props: NewRoundProps): Round {
+  static new(props: NewRoundProps): RoundResult<Round> {
     if (props.bettingWindowInSeconds <= 0) {
-      throw new Error("Betting window must be greater than zero");
+      return Round.failure(new BettingWindowMustBeGreaterThanZeroError());
     }
 
     const bettingClosesAt = new Date(
       props.createdAt.getTime() + props.bettingWindowInSeconds * 1000,
     );
 
-    const round = new Round({
+    const roundProps: RoundProps = {
       id: props.id,
       status: RoundStatus.BETTING_OPEN,
       crashPoint: props.crashPoint,
@@ -91,7 +118,14 @@ export class Round {
       errorReason: null,
       refundRequired: false,
       createdAt: props.createdAt,
-    });
+    };
+
+    const invariantResult = Round.ensureInvariants(roundProps);
+    if (!invariantResult.success) {
+      return invariantResult;
+    }
+
+    const round = new Round(roundProps);
 
     round.recordDomainEvent({
       type: "round.created",
@@ -102,11 +136,16 @@ export class Round {
       serverSeedHash: round.serverSeedHash,
     });
 
-    return round;
+    return Round.success(round);
   }
 
-  static rehydrate(props: RoundProps): Round {
-    return new Round(props);
+  static rehydrate(props: RoundProps): RoundResult<Round> {
+    const invariantResult = Round.ensureInvariants(props);
+    if (!invariantResult.success) {
+      return invariantResult;
+    }
+
+    return Round.success(new Round(props));
   }
 
   get id(): string {
@@ -191,13 +230,15 @@ export class Round {
     return this._status === RoundStatus.SETTLED;
   }
 
-  closeBetting(closedAt: Date = new Date()): void {
+  closeBetting(closedAt: Date = new Date()): RoundResult {
     if (!this.isBettingOpen) {
-      throw new Error("Round can only close betting from BETTING_OPEN status");
+      return Round.failure(
+        new RoundCanOnlyCloseBettingFromBettingOpenError(),
+      );
     }
 
     if (closedAt.getTime() < this.createdAt.getTime()) {
-      throw new Error("Betting cannot close before round creation");
+      return Round.failure(new BettingCannotCloseBeforeRoundCreationError());
     }
 
     this._status = RoundStatus.BETTING_CLOSED;
@@ -206,15 +247,17 @@ export class Round {
       roundId: this.id,
       occurredAt: closedAt,
     });
+
+    return Round.success();
   }
 
-  start(startedAt: Date = new Date()): void {
+  start(startedAt: Date = new Date()): RoundResult {
     if (!this.isBettingClosed) {
-      throw new Error("Round can only start from BETTING_CLOSED status");
+      return Round.failure(new RoundCanOnlyStartFromBettingClosedError());
     }
 
     if (startedAt.getTime() < this.createdAt.getTime()) {
-      throw new Error("Round cannot start before creation");
+      return Round.failure(new RoundCannotStartBeforeCreationError());
     }
 
     this._status = RoundStatus.IN_PROGRESS;
@@ -224,15 +267,17 @@ export class Round {
       roundId: this.id,
       occurredAt: startedAt,
     });
+
+    return Round.success();
   }
 
-  crash(crashedAt: Date = new Date()): void {
+  crash(crashedAt: Date = new Date()): RoundResult {
     if (!this.isInProgress) {
-      throw new Error("Round can only crash from IN_PROGRESS status");
+      return Round.failure(new RoundCanOnlyCrashFromInProgressError());
     }
 
     if (this.startedAt && crashedAt.getTime() < this.startedAt.getTime()) {
-      throw new Error("Round cannot crash before it starts");
+      return Round.failure(new RoundCannotCrashBeforeItStartsError());
     }
 
     this._status = RoundStatus.CRASHED;
@@ -244,27 +289,31 @@ export class Round {
       occurredAt: crashedAt,
       crashMultiplier: this._crashPoint,
     });
+
+    return Round.success();
   }
 
-  fail(errorReason: string, failedAt: Date = new Date()): void {
+  fail(errorReason: string, failedAt: Date = new Date()): RoundResult {
     if (this.isSettled || this.isError) {
-      throw new Error("Round can only fail from a non-terminal status");
+      return Round.failure(
+        new RoundCanOnlyFailFromANonTerminalStatusError(),
+      );
     }
 
     if (!errorReason.trim()) {
-      throw new Error("Error reason is required");
+      return Round.failure(new ErrorReasonIsRequiredError());
     }
 
     if (failedAt.getTime() < this.createdAt.getTime()) {
-      throw new Error("Round cannot fail before creation");
+      return Round.failure(new RoundCannotFailBeforeCreationError());
     }
 
     if (this.startedAt && failedAt.getTime() < this.startedAt.getTime()) {
-      throw new Error("Round cannot fail before it starts");
+      return Round.failure(new RoundCannotFailBeforeItStartsError());
     }
 
     if (this.crashedAt && failedAt.getTime() < this.crashedAt.getTime()) {
-      throw new Error("Round cannot fail before it crashes");
+      return Round.failure(new RoundCannotFailBeforeItCrashesError());
     }
 
     this._status = RoundStatus.ERROR;
@@ -278,11 +327,13 @@ export class Round {
       errorReason,
       refundRequired: true,
     });
+
+    return Round.success();
   }
 
-  settle(): void {
+  settle(): RoundResult {
     if (!this.isCrashed) {
-      throw new Error("Round can only settle from CRASHED status");
+      return Round.failure(new RoundCanOnlySettleFromCrashedStatusError());
     }
 
     this._status = RoundStatus.SETTLED;
@@ -291,6 +342,8 @@ export class Round {
       roundId: this.id,
       occurredAt: new Date(),
     });
+
+    return Round.success();
   }
 
   canAcceptBets(at: Date = new Date()): boolean {
@@ -299,67 +352,88 @@ export class Round {
     );
   }
 
-  private ensureInvariants(): void {
-    if (!this._id.trim()) {
-      throw new Error("Round id is required");
+  private static ensureInvariants(props: RoundProps): RoundResult {
+    if (!props.id.trim()) {
+      return Round.failure(new RoundIdIsRequiredError());
     }
 
-    if (!this._serverSeed.trim()) {
-      throw new Error("Server seed is required");
+    if (!props.serverSeed.trim()) {
+      return Round.failure(new ServerSeedIsRequiredError());
     }
 
-    if (!this._serverSeedHash.trim()) {
-      throw new Error("Server seed hash is required");
+    if (!props.serverSeedHash.trim()) {
+      return Round.failure(new ServerSeedHashIsRequiredError());
     }
 
-    if (this._crashPoint <= 1) {
-      throw new Error("Crash point must be greater than 1");
+    if (props.crashPoint <= 1) {
+      return Round.failure(new CrashPointMustBeGreaterThanOneError());
     }
 
-    if (this._bettingClosesAt.getTime() <= this._createdAt.getTime()) {
-      throw new Error("Betting close time must be after creation time");
+    if (props.bettingClosesAt.getTime() <= props.createdAt.getTime()) {
+      return Round.failure(
+        new BettingCloseTimeMustBeAfterCreationTimeError(),
+      );
     }
 
-    if (
-      this._status === RoundStatus.IN_PROGRESS &&
-      this._startedAt === null
-    ) {
-      throw new Error("Started rounds must have a start time");
-    }
-
-    if (
-      (this._status === RoundStatus.CRASHED ||
-        this._status === RoundStatus.SETTLED) &&
-      this._crashedAt === null
-    ) {
-      throw new Error("Crashed or settled rounds must have a crash time");
+    if (props.status === RoundStatus.IN_PROGRESS && props.startedAt === null) {
+      return Round.failure(new StartedRoundsMustHaveAStartTimeError());
     }
 
     if (
-      (this._status === RoundStatus.CRASHED ||
-        this._status === RoundStatus.SETTLED) &&
-      this._crashMultiplier === null
+      (props.status === RoundStatus.CRASHED ||
+        props.status === RoundStatus.SETTLED) &&
+      props.crashedAt === null
     ) {
-      throw new Error("Crashed or settled rounds must have a crash multiplier");
-    }
-
-    if (this._status === RoundStatus.ERROR && this._failedAt === null) {
-      throw new Error("Errored rounds must have a failure time");
+      return Round.failure(
+        new CrashedOrSettledRoundsMustHaveACrashTimeError(),
+      );
     }
 
     if (
-      this._status === RoundStatus.ERROR &&
-      (this._errorReason === null || !this._errorReason.trim())
+      (props.status === RoundStatus.CRASHED ||
+        props.status === RoundStatus.SETTLED) &&
+      props.crashMultiplier === null
     ) {
-      throw new Error("Errored rounds must have an error reason");
+      return Round.failure(
+        new CrashedOrSettledRoundsMustHaveACrashMultiplierError(),
+      );
     }
 
-    if (this._status === RoundStatus.ERROR && !this._refundRequired) {
-      throw new Error("Errored rounds must require a refund");
+    if (props.status === RoundStatus.ERROR && props.failedAt === null) {
+      return Round.failure(new ErroredRoundsMustHaveAFailureTimeError());
     }
+
+    if (
+      props.status === RoundStatus.ERROR &&
+      (props.errorReason === null || !props.errorReason.trim())
+    ) {
+      return Round.failure(
+        new ErroredRoundsMustHaveAnErrorReasonError(),
+      );
+    }
+
+    if (props.status === RoundStatus.ERROR && !props.refundRequired) {
+      return Round.failure(new ErroredRoundsMustRequireARefundError());
+    }
+
+    return Round.success();
   }
 
   private recordDomainEvent(event: RoundDomainEvent): void {
     this._domainEvents.push(event);
+  }
+
+  private static success<T>(data?: T): RoundResult<T> {
+    return {
+      success: true,
+      data,
+    };
+  }
+
+  private static failure(error: RoundDomainError): RoundResult {
+    return {
+      success: false,
+      error,
+    };
   }
 }
