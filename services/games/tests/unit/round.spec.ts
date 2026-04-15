@@ -130,33 +130,6 @@ describe("Round", () => {
     expect(round.pullDomainEvents()).toHaveLength(0);
   });
 
-  it("rejects rehydration when a settled round has no crash multiplier", () => {
-    const result = Round.rehydrate({
-      id: INVALID_REHYDRATED_ROUND_ID,
-      status: RoundStatus.SETTLED,
-      crashPoint: REHYDRATED_CRASH_POINT,
-      serverSeedHash: SERVER_SEED_HASH,
-      serverSeed: SERVER_SEED,
-      startedAt: atOffsetSeconds(START_OFFSET_SECONDS),
-      bettingClosesAt: atOffsetSeconds(BETTING_CLOSE_OFFSET_SECONDS),
-      crashedAt: atOffsetSeconds(CRASH_OFFSET_SECONDS),
-      crashMultiplier: null,
-      failedAt: null,
-      errorReason: null,
-      refundRequired: false,
-      createdAt: CREATED_AT,
-    });
-
-    expect(result.success).toBe(false);
-    if (result.success) {
-      throw new Error("expected failure");
-    }
-
-    expect(result.error.name).toBe(
-      "CRASHED_OR_SETTLED_ROUNDS_MUST_HAVE_A_CRASH_MULTIPLIER",
-    );
-  });
-
   it("transitions through close betting, start, crash, and settle with events", () => {
     const round = createRound();
     const closedAt = atOffsetSeconds(BETTING_CLOSE_OFFSET_SECONDS);

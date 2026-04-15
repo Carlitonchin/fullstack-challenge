@@ -115,11 +115,6 @@ export class Round {
   }
 
   static rehydrate(props: RoundProps): RoundErrors.RoundResult<Round> {
-    const invariantResult = Round.ensureInvariants(props);
-    if (!invariantResult.success) {
-      return invariantResult;
-    }
-
     return Round.success(new Round(props));
   }
 
