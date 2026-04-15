@@ -3,6 +3,7 @@ export enum RoundStatus {
   BETTING_CLOSED = "BETTING_CLOSED",
   IN_PROGRESS = "IN_PROGRESS",
   CRASHED = "CRASHED",
+  ERROR = "ERROR",
   SETTLED = "SETTLED",
 }
 
@@ -16,6 +17,9 @@ type RoundProps = {
   bettingClosesAt: Date;
   crashedAt: Date | null;
   crashMultiplier: number | null;
+  failedAt: Date | null;
+  errorReason: string | null;
+  refundRequired: boolean;
   createdAt: Date;
 };
 
@@ -38,6 +42,9 @@ export class Round {
   private _bettingClosesAt: Date;
   private _crashedAt: Date | null;
   private _crashMultiplier: number | null;
+  private _failedAt: Date | null;
+  private _errorReason: string | null;
+  private _refundRequired: boolean;
   private _createdAt: Date;
 
   private constructor(props: RoundProps) {
@@ -50,6 +57,9 @@ export class Round {
     this._bettingClosesAt = props.bettingClosesAt;
     this._crashedAt = props.crashedAt;
     this._crashMultiplier = props.crashMultiplier;
+    this._failedAt = props.failedAt;
+    this._errorReason = props.errorReason;
+    this._refundRequired = props.refundRequired;
     this._createdAt = props.createdAt;
     this.ensureInvariants();
   }
@@ -73,6 +83,9 @@ export class Round {
       bettingClosesAt,
       crashedAt: null,
       crashMultiplier: null,
+      failedAt: null,
+      errorReason: null,
+      refundRequired: false,
       createdAt: props.createdAt,
     });
   }
@@ -117,6 +130,18 @@ export class Round {
     return this._crashMultiplier;
   }
 
+  get failedAt(): Date | null {
+    return this._failedAt;
+  }
+
+  get errorReason(): string | null {
+    return this._errorReason;
+  }
+
+  get refundRequired(): boolean {
+    return this._refundRequired;
+  }
+
   get createdAt(): Date {
     return this._createdAt;
   }
@@ -135,6 +160,10 @@ export class Round {
 
   get isCrashed(): boolean {
     return this._status === RoundStatus.CRASHED;
+  }
+
+  get isError(): boolean {
+    return this._status === RoundStatus.ERROR;
   }
 
   get isSettled(): boolean {
@@ -178,6 +207,33 @@ export class Round {
     this._status = RoundStatus.CRASHED;
     this._crashedAt = crashedAt;
     this._crashMultiplier = this._crashPoint;
+  }
+
+  fail(errorReason: string, failedAt: Date = new Date()): void {
+    if (this.isSettled || this.isError) {
+      throw new Error("Round can only fail from a non-terminal status");
+    }
+
+    if (!errorReason.trim()) {
+      throw new Error("Error reason is required");
+    }
+
+    if (failedAt.getTime() < this.createdAt.getTime()) {
+      throw new Error("Round cannot fail before creation");
+    }
+
+    if (this.startedAt && failedAt.getTime() < this.startedAt.getTime()) {
+      throw new Error("Round cannot fail before it starts");
+    }
+
+    if (this.crashedAt && failedAt.getTime() < this.crashedAt.getTime()) {
+      throw new Error("Round cannot fail before it crashes");
+    }
+
+    this._status = RoundStatus.ERROR;
+    this._failedAt = failedAt;
+    this._errorReason = errorReason;
+    this._refundRequired = true;
   }
 
   settle(): void {
@@ -236,6 +292,21 @@ export class Round {
       this._crashMultiplier === null
     ) {
       throw new Error("Crashed or settled rounds must have a crash multiplier");
+    }
+
+    if (this._status === RoundStatus.ERROR && this._failedAt === null) {
+      throw new Error("Errored rounds must have a failure time");
+    }
+
+    if (
+      this._status === RoundStatus.ERROR &&
+      (this._errorReason === null || !this._errorReason.trim())
+    ) {
+      throw new Error("Errored rounds must have an error reason");
+    }
+
+    if (this._status === RoundStatus.ERROR && !this._refundRequired) {
+      throw new Error("Errored rounds must require a refund");
     }
   }
 }
