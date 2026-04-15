@@ -1,5 +1,6 @@
 import * as BetErrors from "./bet.errors";
 import { BetAmount, type BetCurrency } from "./bet-amount";
+import { PayoutAmount } from "./payout-amount";
 import { type BetDomainEvent } from "./bet.events";
 
 export enum BetStatus {
@@ -23,7 +24,7 @@ export type BetProps = {
   rejectionReason: string | null;
   cashedOutAt: Date | null;
   cashoutMultiplier: number | null;
-  payoutAmount: BetAmount | null;
+  payoutAmount: PayoutAmount | null;
   lostAt: Date | null;
   settledAt: Date | null;
   createdAt: Date;
@@ -39,7 +40,6 @@ export type NewBetProps = {
 
 type CashOutProps = {
   multiplier: number;
-  payoutAmount: BetAmount;
   cashedOutAt?: Date;
 };
 
@@ -55,7 +55,7 @@ export class Bet {
   private _rejectionReason: string | null;
   private _cashedOutAt: Date | null;
   private _cashoutMultiplier: number | null;
-  private _payoutAmount: BetAmount | null;
+  private _payoutAmount: PayoutAmount | null;
   private _lostAt: Date | null;
   private _settledAt: Date | null;
   private _createdAt: Date;
@@ -179,7 +179,7 @@ export class Bet {
     return this._payoutAmount?.amountInCents ?? null;
   }
 
-  get payoutAmount(): BetAmount | null {
+  get payoutAmount(): PayoutAmount | null {
     return this._payoutAmount;
   }
 
@@ -288,7 +288,6 @@ export class Bet {
 
   cashOut({
     multiplier,
-    payoutAmount,
     cashedOutAt = new Date(),
   }: CashOutProps): BetErrors.BetResult {
     if (!this.isAccepted) {
@@ -303,18 +302,6 @@ export class Bet {
       );
     }
 
-    if (payoutAmount.currency !== this.currency) {
-      return Bet.failure(
-        new BetErrors.PayoutAmountCurrencyMustMatchBetAmountCurrencyError(),
-      );
-    }
-
-    if (payoutAmount.amountInCents < this.amountInCents) {
-      return Bet.failure(
-        new BetErrors.PayoutAmountInCentsMustBeGreaterThanOrEqualToStakeError(),
-      );
-    }
-
     if (
       this.acceptedAt &&
       cashedOutAt.getTime() < this.acceptedAt.getTime()
@@ -324,10 +311,19 @@ export class Bet {
       );
     }
 
+    const payoutAmountResult = Bet.calculatePayoutAmount({
+      stakeAmountInCents: this.amountInCents,
+      currency: this.currency,
+      multiplier,
+    });
+    if (!payoutAmountResult.success) {
+      return payoutAmountResult;
+    }
+
     this._status = BetStatus.CASHED_OUT;
     this._cashedOutAt = cashedOutAt;
     this._cashoutMultiplier = multiplier;
-    this._payoutAmount = payoutAmount;
+    this._payoutAmount = payoutAmountResult.data!;
     this.recordDomainEvent({
       type: "bet.cashed-out",
       betId: this.id,
@@ -335,8 +331,8 @@ export class Bet {
       playerId: this.playerId,
       occurredAt: cashedOutAt,
       cashoutMultiplier: multiplier,
-      payoutAmountInCents: payoutAmount.amountInCents,
-      currency: payoutAmount.currency,
+      payoutAmountInCents: this._payoutAmount.amountInCents,
+      currency: this._payoutAmount.currency,
     });
 
     return Bet.success();
@@ -562,7 +558,7 @@ export class Bet {
         );
       }
 
-      const payoutAmountResult = BetAmount.create({
+      const payoutAmountResult = PayoutAmount.create({
         amountInCents: props.payoutAmount.amountInCents,
         currency: props.payoutAmount.currency,
       });
@@ -579,6 +575,21 @@ export class Bet {
       if (props.payoutAmount.amountInCents < props.amount.amountInCents) {
         return Bet.failure(
           new BetErrors.PayoutAmountInCentsMustBeGreaterThanOrEqualToStakeError(),
+        );
+      }
+
+      const expectedPayoutAmountResult = Bet.calculatePayoutAmount({
+        stakeAmountInCents: props.amount.amountInCents,
+        currency: props.amount.currency,
+        multiplier: props.cashoutMultiplier,
+      });
+      if (!expectedPayoutAmountResult.success) {
+        return expectedPayoutAmountResult;
+      }
+
+      if (!props.payoutAmount.equals(expectedPayoutAmountResult.data!)) {
+        return Bet.failure(
+          new BetErrors.PayoutAmountMustMatchCashoutMultiplierError(),
         );
       }
     }
@@ -631,6 +642,61 @@ export class Bet {
 
   private recordDomainEvent(event: BetDomainEvent): void {
     this._domainEvents.push(event);
+  }
+
+  private static calculatePayoutAmount({
+    stakeAmountInCents,
+    currency,
+    multiplier,
+  }: {
+    stakeAmountInCents: number;
+    currency: BetCurrency;
+    multiplier: number;
+  }): BetErrors.BetResult<PayoutAmount> {
+    const multiplierScaleResult = Bet.toScaledMultiplier(multiplier);
+    if (!multiplierScaleResult.success) {
+      return multiplierScaleResult;
+    }
+
+    const { numerator, scale } = multiplierScaleResult.data!;
+    const payoutAmountInCents = Math.floor(
+      (stakeAmountInCents * numerator) / scale,
+    );
+
+    if (payoutAmountInCents < stakeAmountInCents) {
+      return Bet.failure(
+        new BetErrors.PayoutAmountInCentsMustBeGreaterThanOrEqualToStakeError(),
+      );
+    }
+
+    return PayoutAmount.create({
+      amountInCents: payoutAmountInCents,
+      currency,
+    });
+  }
+
+  private static toScaledMultiplier(
+    multiplier: number,
+  ): BetErrors.BetResult<{ numerator: number; scale: number }> {
+    if (!Number.isFinite(multiplier) || multiplier <= 1) {
+      return Bet.failure(
+        new BetErrors.CashoutMultiplierMustBeGreaterThanOneError(),
+      );
+    }
+
+    const normalizedMultiplier = multiplier.toString();
+    const [integerPart, decimalPart = ""] = normalizedMultiplier.split(".");
+    const digits = `${integerPart}${decimalPart}`;
+    const numerator = Number.parseInt(digits, 10);
+    const scale = 10 ** decimalPart.length;
+
+    if (!Number.isSafeInteger(numerator) || !Number.isSafeInteger(scale)) {
+      return Bet.failure(
+        new BetErrors.CashoutMultiplierMustBeGreaterThanOneError(),
+      );
+    }
+
+    return Bet.success({ numerator, scale });
   }
 
   private static success<T>(data?: T): BetErrors.BetResult<T> {

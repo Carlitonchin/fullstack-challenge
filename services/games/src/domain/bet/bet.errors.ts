@@ -133,6 +133,15 @@ export class PayoutAmountInCentsMustBeAnIntegerError extends DomainError<"PAYOUT
   }
 }
 
+export class PayoutAmountInCentsMustBeGreaterThanZeroError extends DomainError<"PAYOUT_AMOUNT_IN_CENTS_MUST_BE_GREATER_THAN_ZERO"> {
+  override readonly name =
+    "PAYOUT_AMOUNT_IN_CENTS_MUST_BE_GREATER_THAN_ZERO" as const;
+
+  constructor() {
+    super("Payout amount in cents must be greater than zero");
+  }
+}
+
 export class PayoutAmountInCentsMustBeGreaterThanOrEqualToStakeError extends DomainError<"PAYOUT_AMOUNT_IN_CENTS_MUST_BE_GREATER_THAN_OR_EQUAL_TO_STAKE"> {
   override readonly name =
     "PAYOUT_AMOUNT_IN_CENTS_MUST_BE_GREATER_THAN_OR_EQUAL_TO_STAKE" as const;
@@ -148,6 +157,14 @@ export class PayoutAmountCurrencyMustMatchBetAmountCurrencyError extends DomainE
 
   constructor() {
     super("Payout amount currency must match bet amount currency");
+  }
+}
+
+export class PayoutAmountMustMatchCashoutMultiplierError extends DomainError<"PAYOUT_AMOUNT_MUST_MATCH_CASHOUT_MULTIPLIER"> {
+  override readonly name = "PAYOUT_AMOUNT_MUST_MATCH_CASHOUT_MULTIPLIER" as const;
+
+  constructor() {
+    super("Payout amount must match the stake and cashout multiplier");
   }
 }
 
@@ -331,8 +348,10 @@ export type BetDomainError =
   | BetCanOnlyCashOutFromAcceptedStatusError
   | CashoutMultiplierMustBeGreaterThanOneError
   | PayoutAmountInCentsMustBeAnIntegerError
+  | PayoutAmountInCentsMustBeGreaterThanZeroError
   | PayoutAmountInCentsMustBeGreaterThanOrEqualToStakeError
   | PayoutAmountCurrencyMustMatchBetAmountCurrencyError
+  | PayoutAmountMustMatchCashoutMultiplierError
   | BetCannotCashOutBeforeItIsAcceptedError
   | BetCanOnlyLoseFromAcceptedStatusError
   | BetCannotLoseBeforeItIsAcceptedError

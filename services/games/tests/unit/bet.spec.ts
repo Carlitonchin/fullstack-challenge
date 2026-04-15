@@ -4,6 +4,7 @@ import { describe, expect, it } from "bun:test";
 
 import { Bet, BetStatus } from "../../src/domain/bet/bet";
 import { BetAmount } from "../../src/domain/bet/bet-amount";
+import { PayoutAmount } from "../../src/domain/bet/payout-amount";
 
 const BET_ID = "bet-1";
 const REHYDRATED_BET_ID = "bet-2";
@@ -44,6 +45,15 @@ function assertSuccess<T>(result: { success: boolean; data?: T; error?: Error })
 function createBetAmount(amountInCents: number = BET_AMOUNT_IN_CENTS) {
   return assertSuccess(
     BetAmount.create({
+      amountInCents,
+      currency: "BRL",
+    }),
+  );
+}
+
+function createPayoutAmount(amountInCents: number) {
+  return assertSuccess(
+    PayoutAmount.create({
       amountInCents,
       currency: "BRL",
     }),
@@ -104,7 +114,7 @@ describe("Bet", () => {
       rejectionReason: null,
       cashedOutAt,
       cashoutMultiplier: CASHOUT_MULTIPLIER,
-      payoutAmount: createBetAmount(CASHOUT_PAYOUT_AMOUNT_IN_CENTS),
+      payoutAmount: createPayoutAmount(CASHOUT_PAYOUT_AMOUNT_IN_CENTS),
       lostAt: null,
       settledAt,
       createdAt: CREATED_AT,
@@ -135,7 +145,6 @@ describe("Bet", () => {
     expect(
       bet.cashOut({
         multiplier: CASHOUT_MULTIPLIER,
-        payoutAmount: createBetAmount(CASHOUT_PAYOUT_AMOUNT_IN_CENTS),
         cashedOutAt,
       }).success,
     ).toBe(true);
@@ -207,7 +216,6 @@ describe("Bet", () => {
 
     const cashOutWhilePending = bet.cashOut({
       multiplier: CASHOUT_MULTIPLIER,
-      payoutAmount: createBetAmount(CASHOUT_PAYOUT_AMOUNT_IN_CENTS),
       cashedOutAt: atOffsetSeconds(CASHOUT_OFFSET_SECONDS),
     });
     expect(cashOutWhilePending.success).toBe(false);
