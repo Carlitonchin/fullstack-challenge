@@ -2,11 +2,10 @@
 
 import { describe, expect, it } from "bun:test";
 
-import { Round, RoundStatus } from "../../src/domain/round";
+import { Round, RoundStatus } from "../../src/domain/round/round";
 
 const ROUND_ID = "round-1";
 const REHYDRATED_ROUND_ID = "round-2";
-const INVALID_REHYDRATED_ROUND_ID = "round-3";
 const SERVER_SEED = "seed";
 const SERVER_SEED_HASH = "seed-hash";
 const ERROR_REASON = "wallet debit timed out";
