@@ -18,7 +18,12 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@wallets/*": ["./src/*"],
+      "@wallets/domain/*": ["./src/domain/*"],
+      "@wallets/application/*": ["./src/application/*"],
+      "@wallets/infrastructure/*": ["./src/infrastructure/*"],
+      "@wallets/presentation/*": ["./src/presentation/*"],
+      "@wallets/tests/*": ["./tests/*"]
     }
   },
   "include": ["src/**/*"],

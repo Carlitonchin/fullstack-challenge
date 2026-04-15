@@ -18,7 +18,12 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@games/*": ["./src/*"],
+      "@games/domain/*": ["./src/domain/*"],
+      "@games/application/*": ["./src/application/*"],
+      "@games/infrastructure/*": ["./src/infrastructure/*"],
+      "@games/presentation/*": ["./src/presentation/*"],
+      "@games/tests/*": ["./tests/*"]
     }
   },
   "include": ["src/**/*"],
