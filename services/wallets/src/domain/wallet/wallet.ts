@@ -9,6 +9,10 @@ export type WalletOperation = {
   type: "credit" | "debit";
 };
 
+export type PersistedWalletOperation = WalletOperation & {
+  ledgerSequence: bigint;
+};
+
 export type WalletProps = {
   id: string;
   playerId: string;
@@ -28,7 +32,7 @@ export type RehydrateWalletProps = {
   id: string;
   playerId: string;
   createdAt: Date;
-  operations: WalletOperation[];
+  operations: PersistedWalletOperation[];
 };
 
 type WalletMutationProps = {
@@ -60,7 +64,7 @@ export class Wallet {
     props: NewWalletProps,
   ): WalletErrors.WalletResult<Wallet> {
     const initialBalanceResult = WalletBalance.create({
-      amountInCents: 0,
+      amountInCents: 0n,
       currency: "BRL",
     });
     if (!initialBalanceResult.success) {
@@ -119,14 +123,20 @@ export class Wallet {
     }
 
     const wallet = walletResult.data!;
+
     const orderedOperations = [...props.operations].sort((left, right) => {
-      const timeDifference =
-        left.occurredAt.getTime() - right.occurredAt.getTime();
-      if (timeDifference !== 0) {
-        return timeDifference;
+      const leftSequence = left.ledgerSequence;
+      const rightSequence = right.ledgerSequence;
+
+      if (leftSequence < rightSequence) {
+        return -1;
       }
 
-      return left.id.localeCompare(right.id);
+      if (leftSequence > rightSequence) {
+        return 1;
+      }
+
+      return 0;
     });
 
     for (const operation of orderedOperations) {
@@ -365,19 +375,19 @@ export class Wallet {
   private static ensureInvariants(
     props: WalletProps,
   ): WalletErrors.WalletResult {
-    if (typeof props.id !== "string" || !props.id.trim()) {
+    if (!props.id.trim()) {
       return Wallet.failure(new WalletErrors.WalletIdIsRequiredError());
     }
 
-    if (typeof props.playerId !== "string" || !props.playerId.trim()) {
+    if (!props.playerId.trim()) {
       return Wallet.failure(new WalletErrors.PlayerIdIsRequiredError());
     }
 
-    if (!(props.createdAt instanceof Date) || Number.isNaN(props.createdAt.getTime())) {
+    if (Number.isNaN(props.createdAt.getTime())) {
       return Wallet.failure(new WalletErrors.CreatedAtIsRequiredError());
     }
 
-    if (!(props.updatedAt instanceof Date) || Number.isNaN(props.updatedAt.getTime())) {
+    if (Number.isNaN(props.updatedAt.getTime())) {
       return Wallet.failure(new WalletErrors.UpdatedAtIsRequiredError());
     }
 
@@ -397,7 +407,6 @@ export class Wallet {
 
     return Wallet.success();
   }
-
   private static success<T>(data?: T): WalletErrors.WalletResult<T> {
     return { success: true, data };
   }

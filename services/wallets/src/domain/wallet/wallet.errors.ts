@@ -22,22 +22,6 @@ export class PlayerIdIsRequiredError extends DomainError<"PLAYER_ID_IS_REQUIRED"
   }
 }
 
-export class AmountInCentsMustBeAnIntegerError extends DomainError<"AMOUNT_IN_CENTS_MUST_BE_AN_INTEGER"> {
-  override readonly name = "AMOUNT_IN_CENTS_MUST_BE_AN_INTEGER" as const;
-
-  constructor() {
-    super("Amount in cents must be an integer");
-  }
-}
-
-export class AmountInCentsMustBeASafeIntegerError extends DomainError<"AMOUNT_IN_CENTS_MUST_BE_A_SAFE_INTEGER"> {
-  override readonly name = "AMOUNT_IN_CENTS_MUST_BE_A_SAFE_INTEGER" as const;
-
-  constructor() {
-    super("Amount in cents must be a safe integer when provided as a number");
-  }
-}
-
 export class AmountInCentsCannotBeNegativeError extends DomainError<"AMOUNT_IN_CENTS_CANNOT_BE_NEGATIVE"> {
   override readonly name = "AMOUNT_IN_CENTS_CANNOT_BE_NEGATIVE" as const;
 
@@ -128,11 +112,27 @@ export class WalletOperationAlreadyProcessedError extends DomainError<"WALLET_OP
   }
 }
 
+export class WalletOperationLedgerSequenceIsRequiredError extends DomainError<"WALLET_OPERATION_LEDGER_SEQUENCE_IS_REQUIRED"> {
+  override readonly name =
+    "WALLET_OPERATION_LEDGER_SEQUENCE_IS_REQUIRED" as const;
+
+  constructor() {
+    super("Wallet operation ledger sequence is required");
+  }
+}
+
+export class WalletOperationLedgerSequenceMustBeGreaterThanZeroError extends DomainError<"WALLET_OPERATION_LEDGER_SEQUENCE_MUST_BE_GREATER_THAN_ZERO"> {
+  override readonly name =
+    "WALLET_OPERATION_LEDGER_SEQUENCE_MUST_BE_GREATER_THAN_ZERO" as const;
+
+  constructor() {
+    super("Wallet operation ledger sequence must be greater than zero");
+  }
+}
+
 export type WalletDomainError =
   | WalletIdIsRequiredError
   | PlayerIdIsRequiredError
-  | AmountInCentsMustBeAnIntegerError
-  | AmountInCentsMustBeASafeIntegerError
   | AmountInCentsCannotBeNegativeError
   | AmountInCentsMustBeGreaterThanZeroError
   | UnsupportedCurrencyError
@@ -143,7 +143,9 @@ export type WalletDomainError =
   | UpdatedAtCannotBeBeforeCreatedAtError
   | WalletOperationCannotHappenBeforeCreationError
   | WalletOperationIdIsRequiredError
-  | WalletOperationAlreadyProcessedError;
+  | WalletOperationAlreadyProcessedError
+  | WalletOperationLedgerSequenceIsRequiredError
+  | WalletOperationLedgerSequenceMustBeGreaterThanZeroError;
 
 export type WalletResult<T = undefined> =
   | {
