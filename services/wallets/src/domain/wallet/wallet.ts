@@ -7,8 +7,6 @@ export type WalletOperation = {
   amount: WalletBalance;
   occurredAt: Date;
   type: "credit" | "debit";
-  correlationId?: string;
-  causationId?: string;
 };
 
 export type WalletProps = {
@@ -37,8 +35,6 @@ type WalletMutationProps = {
   operationId: string;
   amount: WalletBalance;
   occurredAt?: Date;
-  correlationId?: string;
-  causationId?: string;
 };
 
 export class Wallet {
@@ -49,7 +45,6 @@ export class Wallet {
   private _updatedAt: Date;
   private _domainEvents: WalletDomainEvent[];
   private _newOperations: WalletOperation[];
-  private _processedOperationIds: Set<string>;
 
   private constructor(props: WalletProps) {
     this._id = props.id;
@@ -59,7 +54,6 @@ export class Wallet {
     this._updatedAt = new Date(props.updatedAt);
     this._domainEvents = [];
     this._newOperations = [];
-    this._processedOperationIds = new Set();
   }
 
   private static createWallet(
@@ -201,8 +195,6 @@ export class Wallet {
     operationId,
     amount,
     occurredAt = new Date(),
-    correlationId,
-    causationId,
   }: WalletMutationProps): WalletErrors.WalletResult {
     const result = this.applyCredit(
       {
@@ -210,8 +202,6 @@ export class Wallet {
         amount,
         occurredAt,
         type: "credit",
-        correlationId,
-        causationId,
       },
       true,
     );
@@ -221,8 +211,6 @@ export class Wallet {
         amount,
         occurredAt: new Date(occurredAt),
         type: "credit",
-        correlationId,
-        causationId,
       });
     }
 
@@ -233,8 +221,6 @@ export class Wallet {
     operationId,
     amount,
     occurredAt = new Date(),
-    correlationId,
-    causationId,
   }: WalletMutationProps): WalletErrors.WalletResult {
     const result = this.applyDebit(
       {
@@ -242,8 +228,6 @@ export class Wallet {
         amount,
         occurredAt,
         type: "debit",
-        correlationId,
-        causationId,
       },
       true,
     );
@@ -254,8 +238,6 @@ export class Wallet {
         amount,
         occurredAt: new Date(occurredAt),
         type: "debit",
-        correlationId,
-        causationId,
       });
     }
 
@@ -268,8 +250,9 @@ export class Wallet {
   ): WalletErrors.WalletResult {
     const operationValidationResult = this.ensureOperationCanBeApplied(operation);
     if (!operationValidationResult.success) {
-      return operationValidationResult;
+      return Wallet.failure(operationValidationResult.error);
     }
+    const operationId = operationValidationResult.data!;
 
     if (operation.amount.amountInCents <= 0n) {
       return Wallet.failure(
@@ -287,16 +270,13 @@ export class Wallet {
       operation.occurredAt.getTime() > this._updatedAt.getTime()
         ? new Date(operation.occurredAt)
         : new Date(this._updatedAt);
-    this._processedOperationIds.add(operation.id);
 
     if (emitDomainEvent) {
       this.recordDomainEvent({
         type: "wallet.credited",
         walletId: this.id,
         playerId: this.playerId,
-        operationId: operation.id,
-        correlationId: operation.correlationId,
-        causationId: operation.causationId,
+        operationId,
         occurredAt: new Date(operation.occurredAt),
         amountInCents: operation.amount.amountInCents,
         currency: operation.amount.currency,
@@ -313,8 +293,9 @@ export class Wallet {
   ): WalletErrors.WalletResult {
     const operationValidationResult = this.ensureOperationCanBeApplied(operation);
     if (!operationValidationResult.success) {
-      return operationValidationResult;
+      return Wallet.failure(operationValidationResult.error);
     }
+    const operationId = operationValidationResult.data!;
 
     if (operation.amount.amountInCents <= 0n) {
       return Wallet.failure(
@@ -332,16 +313,13 @@ export class Wallet {
       operation.occurredAt.getTime() > this._updatedAt.getTime()
         ? new Date(operation.occurredAt)
         : new Date(this._updatedAt);
-    this._processedOperationIds.add(operation.id);
 
     if (emitDomainEvent) {
       this.recordDomainEvent({
         type: "wallet.debited",
         walletId: this.id,
         playerId: this.playerId,
-        operationId: operation.id,
-        correlationId: operation.correlationId,
-        causationId: operation.causationId,
+        operationId,
         occurredAt: new Date(operation.occurredAt),
         amountInCents: operation.amount.amountInCents,
         currency: operation.amount.currency,
@@ -354,26 +332,18 @@ export class Wallet {
 
   private ensureOperationCanBeApplied(
     operation: WalletOperation,
-  ): WalletErrors.WalletResult {
+  ): WalletErrors.WalletResult<string> {
     const operationId = operation.id?.trim();
     if (!operationId) {
       return Wallet.failure(new WalletErrors.WalletOperationIdIsRequiredError());
     }
 
-    operation.id = operationId;
-
-    if (this._processedOperationIds.has(operationId)) {
-      return Wallet.failure(
-        new WalletErrors.WalletOperationAlreadyProcessedError(),
-      );
-    }
-
     const operationTimeResult = this.ensureOperationTime(operation.occurredAt);
     if (!operationTimeResult.success) {
-      return operationTimeResult;
+      return Wallet.failure(operationTimeResult.error);
     }
 
-    return Wallet.success();
+    return Wallet.success(operationId);
   }
 
   private ensureOperationTime(

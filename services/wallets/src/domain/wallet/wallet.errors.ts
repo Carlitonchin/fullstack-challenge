@@ -112,14 +112,6 @@ export class WalletOperationCannotHappenBeforeCreationError extends DomainError<
   }
 }
 
-export class WalletOperationCannotGoBackInTimeError extends DomainError<"WALLET_OPERATION_CANNOT_GO_BACK_IN_TIME"> {
-  override readonly name = "WALLET_OPERATION_CANNOT_GO_BACK_IN_TIME" as const;
-
-  constructor() {
-    super("Wallet operation cannot go back in time");
-  }
-}
-
 export class WalletOperationIdIsRequiredError extends DomainError<"WALLET_OPERATION_ID_IS_REQUIRED"> {
   override readonly name = "WALLET_OPERATION_ID_IS_REQUIRED" as const;
 
@@ -150,7 +142,6 @@ export type WalletDomainError =
   | UpdatedAtIsRequiredError
   | UpdatedAtCannotBeBeforeCreatedAtError
   | WalletOperationCannotHappenBeforeCreationError
-  | WalletOperationCannotGoBackInTimeError
   | WalletOperationIdIsRequiredError
   | WalletOperationAlreadyProcessedError;
 

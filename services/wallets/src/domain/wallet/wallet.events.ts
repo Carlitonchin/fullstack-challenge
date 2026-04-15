@@ -6,8 +6,6 @@ type WalletEventBase<TType extends string> = {
   playerId: string;
   occurredAt: Date;
   operationId?: string;
-  correlationId?: string;
-  causationId?: string;
 };
 
 export type WalletCreatedDomainEvent = WalletEventBase<"wallet.created"> & {
