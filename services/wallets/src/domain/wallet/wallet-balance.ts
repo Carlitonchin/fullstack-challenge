@@ -3,15 +3,15 @@ import * as WalletErrors from "./wallet.errors";
 export type WalletCurrency = "BRL";
 
 export type WalletBalanceProps = {
-  amountInCents: number;
+  amountInCents: bigint | number;
   currency: WalletCurrency;
 };
 
 export class WalletBalance {
-  private _amountInCents: number;
+  private _amountInCents: bigint;
   private _currency: WalletCurrency;
 
-  private constructor(props: WalletBalanceProps) {
+  private constructor(props: { amountInCents: bigint; currency: WalletCurrency }) {
     this._amountInCents = props.amountInCents;
     this._currency = props.currency;
   }
@@ -19,13 +19,16 @@ export class WalletBalance {
   static create(
     props: WalletBalanceProps,
   ): WalletErrors.WalletResult<WalletBalance> {
-    if (!Number.isInteger(props.amountInCents)) {
-      return WalletBalance.failure(
-        new WalletErrors.AmountInCentsMustBeAnIntegerError(),
-      );
+    const normalizedAmountResult = WalletBalance.normalizeAmountInCents(
+      props.amountInCents,
+    );
+    if (!normalizedAmountResult.success) {
+      return WalletBalance.failure(normalizedAmountResult.error);
     }
 
-    if (props.amountInCents < 0) {
+    const amountInCents = normalizedAmountResult.data!;
+
+    if (amountInCents < 0n) {
       return WalletBalance.failure(
         new WalletErrors.AmountInCentsCannotBeNegativeError(),
       );
@@ -35,10 +38,12 @@ export class WalletBalance {
       return WalletBalance.failure(new WalletErrors.UnsupportedCurrencyError());
     }
 
-    return WalletBalance.success(new WalletBalance(props));
+    return WalletBalance.success(
+      new WalletBalance({ amountInCents, currency: props.currency }),
+    );
   }
 
-  get amountInCents(): number {
+  get amountInCents(): bigint {
     return this._amountInCents;
   }
 
@@ -94,6 +99,28 @@ export class WalletBalance {
       this.amountInCents === other.amountInCents &&
       this.currency === other.currency
     );
+  }
+
+  private static normalizeAmountInCents(
+    amountInCents: bigint | number,
+  ): WalletErrors.WalletResult<bigint> {
+    if (typeof amountInCents === "bigint") {
+      return WalletBalance.success(amountInCents);
+    }
+
+    if (!Number.isInteger(amountInCents)) {
+      return WalletBalance.failure(
+        new WalletErrors.AmountInCentsMustBeAnIntegerError(),
+      );
+    }
+
+    if (!Number.isSafeInteger(amountInCents)) {
+      return WalletBalance.failure(
+        new WalletErrors.AmountInCentsMustBeASafeIntegerError(),
+      );
+    }
+
+    return WalletBalance.success(BigInt(amountInCents));
   }
 
   private static success<T>(data?: T): WalletErrors.WalletResult<T> {

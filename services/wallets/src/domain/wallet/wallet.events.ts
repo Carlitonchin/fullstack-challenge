@@ -5,24 +5,27 @@ type WalletEventBase<TType extends string> = {
   walletId: string;
   playerId: string;
   occurredAt: Date;
+  operationId?: string;
+  correlationId?: string;
+  causationId?: string;
 };
 
 export type WalletCreatedDomainEvent = WalletEventBase<"wallet.created"> & {
-  amountInCents: number;
+  amountInCents: bigint;
   currency: WalletCurrency;
-  balanceAfterInCents: number;
+  balanceAfterInCents: bigint;
 };
 
 export type WalletCreditedDomainEvent = WalletEventBase<"wallet.credited"> & {
-  amountInCents: number;
+  amountInCents: bigint;
   currency: WalletCurrency;
-  balanceAfterInCents: number;
+  balanceAfterInCents: bigint;
 };
 
 export type WalletDebitedDomainEvent = WalletEventBase<"wallet.debited"> & {
-  amountInCents: number;
+  amountInCents: bigint;
   currency: WalletCurrency;
-  balanceAfterInCents: number;
+  balanceAfterInCents: bigint;
 };
 
 export type WalletDomainEvent =

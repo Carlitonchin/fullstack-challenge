@@ -30,6 +30,14 @@ export class AmountInCentsMustBeAnIntegerError extends DomainError<"AMOUNT_IN_CE
   }
 }
 
+export class AmountInCentsMustBeASafeIntegerError extends DomainError<"AMOUNT_IN_CENTS_MUST_BE_A_SAFE_INTEGER"> {
+  override readonly name = "AMOUNT_IN_CENTS_MUST_BE_A_SAFE_INTEGER" as const;
+
+  constructor() {
+    super("Amount in cents must be a safe integer when provided as a number");
+  }
+}
+
 export class AmountInCentsCannotBeNegativeError extends DomainError<"AMOUNT_IN_CENTS_CANNOT_BE_NEGATIVE"> {
   override readonly name = "AMOUNT_IN_CENTS_CANNOT_BE_NEGATIVE" as const;
 
@@ -112,10 +120,27 @@ export class WalletOperationCannotGoBackInTimeError extends DomainError<"WALLET_
   }
 }
 
+export class WalletOperationIdIsRequiredError extends DomainError<"WALLET_OPERATION_ID_IS_REQUIRED"> {
+  override readonly name = "WALLET_OPERATION_ID_IS_REQUIRED" as const;
+
+  constructor() {
+    super("Wallet operation id is required");
+  }
+}
+
+export class WalletOperationAlreadyProcessedError extends DomainError<"WALLET_OPERATION_ALREADY_PROCESSED"> {
+  override readonly name = "WALLET_OPERATION_ALREADY_PROCESSED" as const;
+
+  constructor() {
+    super("Wallet operation was already processed");
+  }
+}
+
 export type WalletDomainError =
   | WalletIdIsRequiredError
   | PlayerIdIsRequiredError
   | AmountInCentsMustBeAnIntegerError
+  | AmountInCentsMustBeASafeIntegerError
   | AmountInCentsCannotBeNegativeError
   | AmountInCentsMustBeGreaterThanZeroError
   | UnsupportedCurrencyError
@@ -125,7 +150,9 @@ export type WalletDomainError =
   | UpdatedAtIsRequiredError
   | UpdatedAtCannotBeBeforeCreatedAtError
   | WalletOperationCannotHappenBeforeCreationError
-  | WalletOperationCannotGoBackInTimeError;
+  | WalletOperationCannotGoBackInTimeError
+  | WalletOperationIdIsRequiredError
+  | WalletOperationAlreadyProcessedError;
 
 export type WalletResult<T = undefined> =
   | {
