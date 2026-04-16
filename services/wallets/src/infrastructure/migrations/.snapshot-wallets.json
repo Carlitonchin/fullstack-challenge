@@ -72,8 +72,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "topic": {
-          "name": "topic",
+        "exchange_name": {
+          "name": "exchange_name",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,

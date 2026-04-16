@@ -34,7 +34,7 @@ export type CreateWalletOutboxMessageProps = {
   aggregateType: string;
   aggregateId: string;
   eventType: string;
-  topic: string;
+  exchangeName: string;
   routingKey: string;
   payload: OutboxMessagePayload;
   headers?: OutboxMessageHeaders;
@@ -58,7 +58,7 @@ export type WalletOutboxMessageRecord = {
   aggregateType: string;
   aggregateId: string;
   eventType: string;
-  topic: string;
+  exchangeName: string;
   routingKey: string;
   payload: OutboxMessagePayload;
   headers: OutboxMessageHeaders;
@@ -87,7 +87,10 @@ export function createWalletOutboxMessageRecord(
   );
   const aggregateId = normalizeRequiredString(props.aggregateId, "aggregateId");
   const eventType = normalizeRequiredString(props.eventType, "eventType");
-  const topic = normalizeRequiredString(props.topic, "topic");
+  const exchangeName = normalizeRequiredString(
+    props.exchangeName,
+    "exchangeName",
+  );
   const routingKey = normalizeRequiredString(props.routingKey, "routingKey");
   const idempotencyKey = normalizeRequiredString(
     props.idempotencyKey,
@@ -104,7 +107,7 @@ export function createWalletOutboxMessageRecord(
     aggregateType,
     aggregateId,
     eventType,
-    topic,
+    exchangeName,
     routingKey,
     payload: structuredClone(props.payload),
     headers: { ...(props.headers ?? {}) },
@@ -152,7 +155,7 @@ export const WalletOutboxMessageSchema = defineEntity({
     aggregateType: p.text().fieldName("aggregate_type"),
     aggregateId: p.text().fieldName("aggregate_id"),
     eventType: p.text().fieldName("event_type"),
-    topic: p.text(),
+    exchangeName: p.text().fieldName("exchange_name"),
     routingKey: p.text().fieldName("routing_key"),
     payload: p.json().columnType("jsonb"),
     headers: p.json().columnType("jsonb"),

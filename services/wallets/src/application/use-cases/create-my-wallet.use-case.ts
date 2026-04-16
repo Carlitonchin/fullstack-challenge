@@ -22,7 +22,7 @@ import {
 } from "@wallets/port/wallet.repository";
 
 const INITIAL_BALANCE_IN_CENTS = 10_000n;
-const OUTBOX_TOPIC = "wallets.events";
+const OUTBOX_EXCHANGE_NAME = "wallets.domain";
 const AGGREGATE_TYPE = "wallet";
 
 @Injectable()
@@ -116,7 +116,7 @@ export class CreateMyWalletUseCase {
         aggregateType: AGGREGATE_TYPE,
         aggregateId: wallet.id,
         eventType: event.type,
-        topic: OUTBOX_TOPIC,
+        exchangeName: OUTBOX_EXCHANGE_NAME,
         routingKey: event.type,
         idempotencyKey: event.idempotencyKey,
         payload: {
