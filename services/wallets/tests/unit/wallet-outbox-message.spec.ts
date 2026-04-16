@@ -18,7 +18,6 @@ describe("Wallet outbox message", () => {
       routingKey: "wallet.credited",
       idempotencyKey: "credit-1",
       payload: {
-        eventId: "outbox-1",
         eventType: "wallet.credited",
         occurredAt: "2026-04-16T02:30:00.000Z",
         version: 1,
@@ -57,7 +56,6 @@ describe("Wallet outbox message", () => {
         routingKey: "bet.debit.succeeded",
         idempotencyKey: "   ",
         payload: {
-          eventId: "outbox-2",
           eventType: "bet.debit.succeeded",
           occurredAt: "2026-04-16T02:30:00.000Z",
           version: 1,
@@ -87,7 +85,6 @@ describe("Wallet outbox message", () => {
       routingKey: "cashout.credit.succeeded.v2",
       idempotencyKey: "cashout-1",
       payload: {
-        eventId: "outbox-3",
         eventType: "cashout.credit.succeeded.v2",
         occurredAt: "2026-04-16T02:30:00.000Z",
         version: 2,

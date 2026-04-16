@@ -1,8 +1,14 @@
 import * as WalletErrors from "./wallet.errors";
 import { WalletBalance, type WalletCurrency } from "./wallet-balance";
-import { type WalletDomainEvent } from "./wallet.events";
+import {
+  WalletCreatedDomainEvent,
+  WalletCreditedDomainEvent,
+  WalletDebitedDomainEvent,
+  type WalletDomainEvent,
+} from "./wallet.events";
 
 export type WalletOperationType =
+  | "ACCOUNT_FUNDING"
   | "BET_STAKE_LOCK"
   | "BET_STAKE_REFUND"
   | "BET_PAYOUT";
@@ -104,15 +110,18 @@ export class Wallet {
 
     const wallet = result.data!;
 
-    wallet.recordDomainEvent({
-      type: "wallet.created",
-      walletId: wallet.id,
-      playerId: wallet.playerId,
-      occurredAt: wallet.createdAt,
-      amountInCents: 0n,
-      currency: wallet.currency,
-      balanceAfterInCents: wallet.balanceInCents,
-    });
+    wallet.recordDomainEvent(
+      new WalletCreatedDomainEvent({
+        type: "wallet.created",
+        walletId: wallet.id,
+        playerId: wallet.playerId,
+        occurredAt: wallet.createdAt,
+        idempotencyKey: wallet.id,
+        amountInCents: 0n,
+        currency: wallet.currency,
+        balanceAfterInCents: wallet.balanceInCents,
+      }),
+    );
 
     return result;
   }
@@ -206,10 +215,7 @@ export class Wallet {
   }
 
   pullDomainEvents(): WalletDomainEvent[] {
-    const events = this._domainEvents.map((event) => ({
-      ...event,
-      occurredAt: new Date(event.occurredAt),
-    }));
+    const events = [...this._domainEvents];
     this._domainEvents = [];
     return events;
   }
@@ -310,16 +316,19 @@ export class Wallet {
         : new Date(this._updatedAt);
 
     if (emitDomainEvent) {
-      this.recordDomainEvent({
-        type: "wallet.credited",
-        walletId: this.id,
-        playerId: this.playerId,
-        operationId,
-        occurredAt: new Date(operation.occurredAt),
-        amountInCents: operation.amount.amountInCents,
-        currency: operation.amount.currency,
-        balanceAfterInCents: this.balanceInCents,
-      });
+      this.recordDomainEvent(
+        new WalletCreditedDomainEvent({
+          type: "wallet.credited",
+          walletId: this.id,
+          playerId: this.playerId,
+          operationId,
+          occurredAt: new Date(operation.occurredAt),
+          idempotencyKey: operationId,
+          amountInCents: operation.amount.amountInCents,
+          currency: operation.amount.currency,
+          balanceAfterInCents: this.balanceInCents,
+        }),
+      );
     }
 
     return Wallet.success();
@@ -353,16 +362,19 @@ export class Wallet {
         : new Date(this._updatedAt);
 
     if (emitDomainEvent) {
-      this.recordDomainEvent({
-        type: "wallet.debited",
-        walletId: this.id,
-        playerId: this.playerId,
-        operationId,
-        occurredAt: new Date(operation.occurredAt),
-        amountInCents: operation.amount.amountInCents,
-        currency: operation.amount.currency,
-        balanceAfterInCents: this.balanceInCents,
-      });
+      this.recordDomainEvent(
+        new WalletDebitedDomainEvent({
+          type: "wallet.debited",
+          walletId: this.id,
+          playerId: this.playerId,
+          operationId,
+          occurredAt: new Date(operation.occurredAt),
+          idempotencyKey: operationId,
+          amountInCents: operation.amount.amountInCents,
+          currency: operation.amount.currency,
+          balanceAfterInCents: this.balanceInCents,
+        }),
+      );
     }
 
     return Wallet.success();

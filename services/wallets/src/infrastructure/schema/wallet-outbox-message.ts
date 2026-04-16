@@ -10,7 +10,6 @@ export enum WalletOutboxStatus {
 export type OutboxMessageHeaders = Record<string, string>;
 
 export type OutboxMessagePayload = {
-  eventId: string;
   eventType: string;
   occurredAt: string;
   version: number;

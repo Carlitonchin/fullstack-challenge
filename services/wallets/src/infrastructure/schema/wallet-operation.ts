@@ -2,6 +2,7 @@ import { defineEntity, type InferEntity, p } from "@mikro-orm/core";
 import { WalletSchema } from "./wallet";
 
 export enum WalletOperationType {
+    ACCOUNT_FUNDING = 'ACCOUNT_FUNDING',
     BET_STAKE_LOCK = 'BET_STAKE_LOCK',
     BET_STAKE_REFUND = 'BET_STAKE_REFUND',
     BET_PAYOUT = 'BET_PAYOUT',

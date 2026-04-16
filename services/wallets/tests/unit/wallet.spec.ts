@@ -4,6 +4,11 @@ import { describe, expect, it } from "bun:test";
 
 import { WalletBalance } from "../../src/domain/wallet/wallet-balance";
 import { Wallet } from "../../src/domain/wallet/wallet";
+import {
+  WalletCreatedDomainEvent,
+  WalletCreditedDomainEvent,
+  WalletDebitedDomainEvent,
+} from "../../src/domain/wallet/wallet.events";
 
 const WALLET_ID = "wallet-1";
 const REHYDRATED_WALLET_ID = "wallet-2";
@@ -116,15 +121,17 @@ describe("Wallet", () => {
     const events = wallet.pullDomainEvents();
 
     expect(events).toHaveLength(1);
-    expect(events[0]).toEqual({
-      type: "wallet.created",
+    expect(events[0]).toBeInstanceOf(WalletCreatedDomainEvent);
+    expect(events[0]?.serialize()).toEqual({
       walletId: WALLET_ID,
       playerId: PLAYER_ID,
-      occurredAt: CREATED_AT,
-      amountInCents: ZERO_AMOUNT_IN_CENTS,
+      operationId: null,
+      amountInCents: ZERO_AMOUNT_IN_CENTS.toString(),
       currency: CURRENCY,
-      balanceAfterInCents: ZERO_AMOUNT_IN_CENTS,
+      balanceAfterInCents: ZERO_AMOUNT_IN_CENTS.toString(),
     });
+    expect(events[0]?.idempotencyKey).toBe(WALLET_ID);
+    expect(events[0]?.occurredAt).toEqual(CREATED_AT);
     expect(wallet.pullDomainEvents()).toHaveLength(0);
     expect(wallet.pullNewOperations()).toHaveLength(0);
   });
@@ -142,12 +149,14 @@ describe("Wallet", () => {
           amount: createAmount(REHYDRATED_DEBIT_AMOUNT_IN_CENTS),
           occurredAt: rehydratedDebitAt,
           type: "debit",
+          operationType: "BET_STAKE_LOCK",
           ledgerSequence: SECOND_LEDGER_SEQUENCE,
         },
         {
           id: REHYDRATED_CREDIT_OPERATION_ID,
           amount: createAmount(REHYDRATED_CREDIT_AMOUNT_IN_CENTS),
           occurredAt: rehydratedCreditAt,
+          operationType: "BET_PAYOUT",
           type: "credit",
           ledgerSequence: FIRST_LEDGER_SEQUENCE,
         },
@@ -174,6 +183,7 @@ describe("Wallet", () => {
       wallet.credit({
         operationId: CREDIT_OPERATION_ID,
         amount: createAmount(CREDIT_AMOUNT_IN_CENTS),
+        operationType: "ACCOUNT_FUNDING",
         occurredAt: creditedAt,
       }).success,
     ).toBe(true);
@@ -184,46 +194,51 @@ describe("Wallet", () => {
       wallet.debit({
         operationId: DEBIT_OPERATION_ID,
         amount: createAmount(DEBIT_AMOUNT_IN_CENTS),
+        operationType: "BET_STAKE_LOCK",
         occurredAt: debitedAt,
       }).success,
     ).toBe(true);
     expect(wallet.balanceInCents).toBe(BALANCE_AFTER_DEBIT_IN_CENTS);
     expect(wallet.updatedAt).toEqual(debitedAt);
 
-    expect(wallet.pullDomainEvents()).toEqual([
-      {
-        type: "wallet.credited",
-        walletId: WALLET_ID,
-        playerId: PLAYER_ID,
-        operationId: CREDIT_OPERATION_ID,
-        occurredAt: creditedAt,
-        amountInCents: CREDIT_AMOUNT_IN_CENTS,
-        currency: CURRENCY,
-        balanceAfterInCents: BALANCE_AFTER_CREDIT_IN_CENTS,
-      },
-      {
-        type: "wallet.debited",
-        walletId: WALLET_ID,
-        playerId: PLAYER_ID,
-        operationId: DEBIT_OPERATION_ID,
-        occurredAt: debitedAt,
-        amountInCents: DEBIT_AMOUNT_IN_CENTS,
-        currency: CURRENCY,
-        balanceAfterInCents: BALANCE_AFTER_DEBIT_IN_CENTS,
-      },
-    ]);
+    const domainEvents = wallet.pullDomainEvents();
+    expect(domainEvents).toHaveLength(2);
+    expect(domainEvents[0]).toBeInstanceOf(WalletCreditedDomainEvent);
+    expect(domainEvents[1]).toBeInstanceOf(WalletDebitedDomainEvent);
+    expect(domainEvents[0]?.serialize()).toEqual({
+      walletId: WALLET_ID,
+      playerId: PLAYER_ID,
+      operationId: CREDIT_OPERATION_ID,
+      amountInCents: CREDIT_AMOUNT_IN_CENTS.toString(),
+      currency: CURRENCY,
+      balanceAfterInCents: BALANCE_AFTER_CREDIT_IN_CENTS.toString(),
+    });
+    expect(domainEvents[0]?.occurredAt).toEqual(creditedAt);
+    expect(domainEvents[0]?.idempotencyKey).toBe(CREDIT_OPERATION_ID);
+    expect(domainEvents[1]?.serialize()).toEqual({
+      walletId: WALLET_ID,
+      playerId: PLAYER_ID,
+      operationId: DEBIT_OPERATION_ID,
+      amountInCents: DEBIT_AMOUNT_IN_CENTS.toString(),
+      currency: CURRENCY,
+      balanceAfterInCents: BALANCE_AFTER_DEBIT_IN_CENTS.toString(),
+    });
+    expect(domainEvents[1]?.occurredAt).toEqual(debitedAt);
+    expect(domainEvents[1]?.idempotencyKey).toBe(DEBIT_OPERATION_ID);
 
     expect(wallet.pullNewOperations()).toEqual([
       {
         id: CREDIT_OPERATION_ID,
         amount: createAmount(CREDIT_AMOUNT_IN_CENTS),
         occurredAt: creditedAt,
+        operationType: "ACCOUNT_FUNDING",
         type: "credit",
       },
       {
         id: DEBIT_OPERATION_ID,
         amount: createAmount(DEBIT_AMOUNT_IN_CENTS),
         occurredAt: debitedAt,
+        operationType: "BET_STAKE_LOCK",
         type: "debit",
       },
     ]);
@@ -236,6 +251,7 @@ describe("Wallet", () => {
     const blankOperationIdCredit = wallet.credit({
       operationId: "   ",
       amount: createAmount(CREDIT_AMOUNT_IN_CENTS),
+      operationType: "ACCOUNT_FUNDING",
       occurredAt: atOffsetSeconds(CREDIT_OFFSET_SECONDS),
     });
     expect(blankOperationIdCredit.success).toBe(false);
@@ -249,6 +265,7 @@ describe("Wallet", () => {
     const zeroAmountCredit = wallet.credit({
       operationId: CREDIT_OPERATION_ID,
       amount: createAmount(ZERO_AMOUNT_IN_CENTS),
+      operationType: "ACCOUNT_FUNDING",
       occurredAt: atOffsetSeconds(CREDIT_OFFSET_SECONDS),
     });
     expect(zeroAmountCredit.success).toBe(false);
@@ -262,6 +279,7 @@ describe("Wallet", () => {
     const debitBeforeCreation = wallet.debit({
       operationId: DEBIT_OPERATION_ID,
       amount: createAmount(DEBIT_AMOUNT_IN_CENTS),
+      operationType: "BET_STAKE_LOCK",
       occurredAt: atOffsetMs(PRE_CREATION_OFFSET_MS),
     });
     expect(debitBeforeCreation.success).toBe(false);
@@ -275,6 +293,7 @@ describe("Wallet", () => {
     const debitWithoutBalance = wallet.debit({
       operationId: DEBIT_OPERATION_ID,
       amount: createAmount(DEBIT_AMOUNT_IN_CENTS),
+      operationType: "BET_STAKE_LOCK",
       occurredAt: atOffsetSeconds(DEBIT_OFFSET_SECONDS),
     });
     expect(debitWithoutBalance.success).toBe(false);
@@ -296,6 +315,7 @@ describe("Wallet", () => {
           id: REHYDRATED_CREDIT_OPERATION_ID,
           amount: createAmount(REHYDRATED_CREDIT_AMOUNT_IN_CENTS),
           occurredAt: atOffsetSeconds(REHYDRATED_CREDIT_OFFSET_SECONDS),
+          operationType: "BET_PAYOUT",
           type: "credit",
           ledgerSequence: DUPLICATE_LEDGER_SEQUENCE,
         },
@@ -303,6 +323,7 @@ describe("Wallet", () => {
           id: REHYDRATED_DEBIT_OPERATION_ID,
           amount: createAmount(REHYDRATED_DEBIT_AMOUNT_IN_CENTS),
           occurredAt: atOffsetSeconds(REHYDRATED_DEBIT_OFFSET_SECONDS),
+          operationType: "BET_STAKE_LOCK",
           type: "debit",
           ledgerSequence: DUPLICATE_LEDGER_SEQUENCE,
         },
@@ -329,6 +350,7 @@ describe("Wallet", () => {
           id: REHYDRATED_CREDIT_OPERATION_ID,
           amount: createAmount(REHYDRATED_CREDIT_AMOUNT_IN_CENTS),
           occurredAt: atOffsetSeconds(REHYDRATED_CREDIT_OFFSET_SECONDS),
+          operationType: "BET_PAYOUT",
           type: "credit",
           ledgerSequence: INVALID_LEDGER_SEQUENCE,
         },
