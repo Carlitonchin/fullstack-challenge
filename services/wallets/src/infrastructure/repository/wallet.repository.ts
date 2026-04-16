@@ -1,16 +1,17 @@
 import { Injectable } from "@nestjs/common";
-import { EntityManager, MikroORM } from "@mikro-orm/postgresql";
+import { EntityManager } from "@mikro-orm/postgresql";
 import { Wallet, type PersistedWalletOperation } from "../../domain/wallet/wallet";
 import { WalletBalance } from "../../domain/wallet/wallet-balance";
 import type {
   WalletDomainError,
   WalletResult,
 } from "../../domain/wallet/wallet.errors";
+import type { IWalletRepository } from "@wallets/port/wallet.repository";
 import { WalletSchema, type IWallet } from "../schema/wallet";
 import { type IWalletOperation } from "../schema/wallet-operation";
 
 @Injectable()
-export class WalletRepository {
+export class WalletRepository implements IWalletRepository {
   constructor(private readonly em: EntityManager) {}
 
   async findByPlayerId(playerId: string): Promise<WalletResult<Wallet | undefined>> {

@@ -1,8 +1,6 @@
 import {
   Controller,
   Get,
-  InternalServerErrorException,
-  NotFoundException,
   Req,
   UseGuards,
 } from "@nestjs/common";
@@ -15,7 +13,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
-import { WalletRepository } from "../../infrastructure/repository/wallet.repository";
+import { GetMyWalletUseCase } from "@wallets/application/use-cases/get-my-wallet.use-case";
 import { KeycloakJwtAuthGuard } from "../auth/keycloak-jwt-auth.guard";
 import { HealthCheckResponseDto } from "../dtos/health-check-response.dto";
 import { WalletResponseDto } from "../dtos/wallet-response.dto";
@@ -29,7 +27,7 @@ type AuthenticatedRequest = {
 @ApiTags("wallets")
 @Controller()
 export class WalletsController {
-  constructor(private readonly walletRepository: WalletRepository) {}
+  constructor(private readonly getMyWalletUseCase: GetMyWalletUseCase) {}
 
   @Get("health")
   @ApiOperation({ summary: "Wallets service health check" })
@@ -49,24 +47,7 @@ export class WalletsController {
     description: "Authenticated player id is missing or wallet reconstruction failed",
   })
   async getMe(@Req() request: AuthenticatedRequest): Promise<WalletResponseDto> {
-    const playerId = request.user?.sub?.trim();
-
-    if (!playerId) {
-      throw new InternalServerErrorException("Authenticated player id is missing");
-    }
-
-    const walletResult = await this.walletRepository.findByPlayerId(playerId);
-
-    if (!walletResult.success) {
-      throw new InternalServerErrorException(walletResult.error.message);
-    }
-
-    const wallet = walletResult.data;
-
-    if (!wallet) {
-      throw new NotFoundException(`Wallet for player ${playerId} was not found`);
-    }
-
+    const wallet = await this.getMyWalletUseCase.execute(request.user?.sub ?? "");
     return WalletResponseDto.fromDomain(wallet);
   }
 }
