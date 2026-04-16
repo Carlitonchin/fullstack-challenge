@@ -9,7 +9,7 @@
     "test": "bun test tests/unit",
     "test:e2e": "bun test tests/e2e",
     "migration:create": "export DATABASE_URL=postgresql://admin:admin@localhost:5432/wallets && mikro-orm migration:create",
-    "migration:up": "export DATABASE_URL=postgresql://admin:admin@localhost:5432/wallets && mikro-orm migration:up",
+    "migration:up": "mikro-orm migration:up",
     "migration:down": "mikro-orm migration:down"
   },
   "mikro-orm": {

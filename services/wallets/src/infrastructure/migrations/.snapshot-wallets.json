@@ -439,6 +439,7 @@
           "name": "operation_type",
           "schema": "public",
           "items": [
+            "ACCOUNT_FUNDING",
             "BET_STAKE_LOCK",
             "BET_STAKE_REFUND",
             "BET_PAYOUT"
@@ -564,6 +565,7 @@
           "name": "operation_type",
           "schema": "public",
           "items": [
+            "ACCOUNT_FUNDING",
             "BET_STAKE_LOCK",
             "BET_STAKE_REFUND",
             "BET_PAYOUT"
@@ -653,6 +655,7 @@
           "default": null,
           "comment": null,
           "enumItems": [
+            "ACCOUNT_FUNDING",
             "BET_STAKE_LOCK",
             "BET_STAKE_REFUND",
             "BET_PAYOUT"
@@ -799,6 +802,7 @@
           "name": "operation_type",
           "schema": "public",
           "items": [
+            "ACCOUNT_FUNDING",
             "BET_STAKE_LOCK",
             "BET_STAKE_REFUND",
             "BET_PAYOUT"
@@ -830,6 +834,7 @@
       "name": "operation_type",
       "schema": "public",
       "items": [
+        "ACCOUNT_FUNDING",
         "BET_STAKE_LOCK",
         "BET_STAKE_REFUND",
         "BET_PAYOUT"

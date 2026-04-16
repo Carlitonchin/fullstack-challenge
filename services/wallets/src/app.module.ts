@@ -1,5 +1,4 @@
 import { Module } from "@nestjs/common";
-import { EntityManager } from "@mikro-orm/postgresql";
 import { MikroOrmModule } from "@mikro-orm/nestjs";
 import type { MikroOrmModuleSyncOptions } from "@mikro-orm/nestjs";
 import { CreateMyWalletUseCase } from "@wallets/application/use-cases/create-my-wallet.use-case";
@@ -33,7 +32,6 @@ import mikroOrmConfig from "./mikro-orm.config";
       provide: TIME_PROVIDER,
       useClass: SystemTimeProvider,
     },
-    EntityManager,
   ],
 })
 export class AppModule { }

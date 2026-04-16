@@ -1,6 +1,6 @@
 import { Migration } from '@mikro-orm/migrations';
 
-export class Migration20260416133229 extends Migration {
+export class Migration20260416153234 extends Migration {
 
   override up(): void | Promise<void> {
     this.addSql(`create type "wallet_outbox_status" as enum ('PENDING', 'PROCESSING', 'PUBLISHED', 'FAILED');`);
@@ -12,7 +12,7 @@ export class Migration20260416133229 extends Migration {
 
     this.addSql(`alter table "wallet_outbox_messages" add constraint "wallet_outbox_messages_attempts_check" check (attempts >= 0);`);
 
-    this.addSql(`alter table "wallet_operations" alter column "ledger_sequence" drop default;`);
+    this.addSql(`alter type "operation_type" add value if not exists 'ACCOUNT_FUNDING' before 'BET_STAKE_LOCK';`);
   }
 
   override down(): void | Promise<void> {
