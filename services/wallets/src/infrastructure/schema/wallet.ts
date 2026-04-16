@@ -1,7 +1,7 @@
 import { defineEntity, type InferEntity, p } from "@mikro-orm/core";
 import { WalletOperationSchema } from "./wallet-operation";
 
-enum WalletCurrencyType {
+export enum WalletCurrencyType {
     BRL = "BRL"
 }
 
@@ -25,4 +25,4 @@ export const WalletSchema = defineEntity({
     },
 });
 
-export type IWalletEntity = InferEntity<typeof WalletSchema>;
+export type IWallet = InferEntity<typeof WalletSchema>;

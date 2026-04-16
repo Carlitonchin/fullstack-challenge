@@ -50,4 +50,4 @@ export const WalletOperationSchema = defineEntity({
   },
 });
 
-export type IWalletOperationEntity = InferEntity<typeof WalletOperationEntity>;
+export type IWalletOperation = InferEntity<typeof WalletOperationSchema>;

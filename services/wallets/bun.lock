@@ -18,8 +18,7 @@
         "@mikro-orm/cli": "^7.0.10",
         "@mikro-orm/migrations": "^7.0.10",
         "bun-types": "latest",
-        "tsx": "^4.20.6",
-        "typescript": "^5.8.3",
+        "typescript": "^5.8.3"
       },
     },
   },
