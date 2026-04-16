@@ -54,9 +54,33 @@ export type CreateWalletOutboxMessageProps = {
   updatedAt?: Date;
 };
 
+export type WalletOutboxMessageRecord = {
+  id: string;
+  aggregateType: string;
+  aggregateId: string;
+  eventType: string;
+  topic: string;
+  routingKey: string;
+  payload: OutboxMessagePayload;
+  headers: OutboxMessageHeaders;
+  correlationId: string | null;
+  causationId: string | null;
+  idempotencyKey: string;
+  partitionKey: string | null;
+  status: WalletOutboxStatus;
+  attempts: number;
+  availableAt: Date;
+  lockedAt: Date | null;
+  lockedBy: string | null;
+  publishedAt: Date | null;
+  lastError: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export function createWalletOutboxMessageRecord(
   props: CreateWalletOutboxMessageProps,
-): CreateWalletOutboxMessageProps {
+): WalletOutboxMessageRecord {
   const id = normalizeRequiredString(props.id, "id");
   const aggregateType = normalizeRequiredString(
     props.aggregateType,
