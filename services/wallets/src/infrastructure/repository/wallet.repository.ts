@@ -1,18 +1,31 @@
 import { Injectable } from "@nestjs/common";
 import { EntityManager } from "@mikro-orm/postgresql";
-import { Wallet, type PersistedWalletOperation } from "../../domain/wallet/wallet";
+import {
+  Wallet,
+  type PersistedWalletOperation,
+  type WalletOperation,
+} from "../../domain/wallet/wallet";
 import { WalletBalance } from "../../domain/wallet/wallet-balance";
 import type {
   WalletDomainError,
   WalletResult,
 } from "../../domain/wallet/wallet.errors";
-import type { IWalletRepository } from "@wallets/port/wallet.repository";
-import { WalletSchema, type IWallet } from "../schema/wallet";
-import { type IWalletOperation } from "../schema/wallet-operation";
+import type {
+  IWalletRepository
+} from "@wallets/port/wallet.repository";
+import {
+  WalletSchema,
+  WalletCurrencyType,
+  type IWallet,
+} from "../schema/wallet";
+import {
+  WalletOperationSchema,
+  type IWalletOperation,
+} from "../schema/wallet-operation";
 
 @Injectable()
 export class WalletRepository implements IWalletRepository {
-  constructor(private readonly em: EntityManager) {}
+  constructor(private readonly em: EntityManager) { }
 
   async findByPlayerId(playerId: string): Promise<WalletResult<Wallet | undefined>> {
     const walletRecord = await this.em.findOne(
@@ -50,12 +63,54 @@ export class WalletRepository implements IWalletRepository {
     return WalletRepository.success(walletResult.data);
   }
 
+  async persist(wallet: Wallet): Promise<WalletResult<Wallet>> {
+    const entity = this.em.create(WalletSchema, {
+      id: wallet.id,
+      playerId: wallet.playerId,
+      currency: WalletCurrencyType[wallet.currency],
+      createdAt: wallet.createdAt,
+    });
+
+    this.em.persist(entity);
+
+    return WalletRepository.success(wallet);
+  }
+
+  async persistOperation({
+    wallet,
+    operation
+  }: {
+    wallet: Wallet;
+    operation: WalletOperation;
+  }): Promise<WalletResult<WalletOperation>> {
+    const signedAmountInCents =
+      operation.type === "credit"
+        ? operation.amount.amountInCents
+        : operation.amount.amountInCents * -1n;
+
+    const entity = this.em.create(
+      WalletOperationSchema,
+      {
+        id: operation.id,
+        wallet: this.em.getReference(WalletSchema, wallet.id),
+        amountCents: signedAmountInCents,
+        operationId: operation.id,
+        operationType: operation.operationType,
+        createdAt: operation.occurredAt,
+      } as unknown as IWalletOperation,
+    );
+
+    this.em.persist(entity);
+
+    return WalletRepository.success(operation);
+  }
+
   private mapOperation(
     operationRecord: IWalletOperation,
     walletRecord: IWallet,
   ): WalletResult<PersistedWalletOperation> {
     const rawAmountInCents = BigInt(operationRecord.amountCents.toString());
-    const operationType = rawAmountInCents >= 0n ? "credit" : "debit";
+    const type = rawAmountInCents >= 0n ? "credit" : "debit";
     const balanceResult = WalletBalance.create({
       amountInCents:
         rawAmountInCents >= 0n ? rawAmountInCents : rawAmountInCents * -1n,
@@ -70,7 +125,8 @@ export class WalletRepository implements IWalletRepository {
       id: operationRecord.operationId,
       amount: balanceResult.data!,
       occurredAt: operationRecord.createdAt,
-      type: operationType,
+      type: type,
+      operationType: operationRecord.operationType,
       ledgerSequence: BigInt(operationRecord.ledgerSequence.toString()),
     });
   }
