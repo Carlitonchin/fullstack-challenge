@@ -8,9 +8,9 @@
     "start:docker": "bun run migration:up && bun run src/main.ts",
     "test": "bun test tests/unit",
     "test:e2e": "bun test tests/e2e",
-    "migration:create": "mikro-orm migration:create --initial",
-    "migration:up": "mikro-orm --config ./src/mikro-orm.config.ts migration:up",
-    "migration:down": "mikro-orm --config ./src/mikro-orm.config.ts migration:down"
+    "migration:create": "mikro-orm migration:create",
+    "migration:up": "mikro-orm migration:up",
+    "migration:down": "mikro-orm migration:down"
   },
   "mikro-orm": {
     "tsLoader": "tsx"

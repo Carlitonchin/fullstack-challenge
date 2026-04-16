@@ -8,8 +8,8 @@ export default defineConfig({
   entities: [WalletSchema, WalletOperationSchema],
   extensions: [Migrator],
   migrations: {
-    path: "./src/infrastructure/persistence/mikro-orm/migrations",
-    pathTs: "./src/infrastructure/persistence/mikro-orm/migrations",
+    path: "./src/infrastructure/migrations",
+    pathTs: "./src/infrastructure/migrations",
     glob: "!(*.d).{js,ts}",
   },
 });
