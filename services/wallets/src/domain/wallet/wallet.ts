@@ -2,11 +2,17 @@ import * as WalletErrors from "./wallet.errors";
 import { WalletBalance, type WalletCurrency } from "./wallet-balance";
 import { type WalletDomainEvent } from "./wallet.events";
 
+export type WalletOperationType =
+  | "BET_STAKE_LOCK"
+  | "BET_STAKE_REFUND"
+  | "BET_PAYOUT";
+
 export type WalletOperation = {
   id: string;
   amount: WalletBalance;
   occurredAt: Date;
   type: "credit" | "debit";
+  operationType: WalletOperationType
 };
 
 export type PersistedWalletOperation = WalletOperation & {
@@ -38,6 +44,7 @@ export type RehydrateWalletProps = {
 type WalletMutationProps = {
   operationId: string;
   amount: WalletBalance;
+  operationType: WalletOperationType
   occurredAt?: Date;
 };
 
@@ -219,12 +226,14 @@ export class Wallet {
   credit({
     operationId,
     amount,
+    operationType,
     occurredAt = new Date(),
   }: WalletMutationProps): WalletErrors.WalletResult {
     const result = this.applyCredit(
       {
         id: operationId,
         amount,
+        operationType,
         occurredAt,
         type: "credit",
       },
@@ -234,6 +243,7 @@ export class Wallet {
       this._newOperations.push({
         id: operationId,
         amount,
+        operationType,
         occurredAt: new Date(occurredAt),
         type: "credit",
       });
@@ -245,11 +255,13 @@ export class Wallet {
   debit({
     operationId,
     amount,
+    operationType,
     occurredAt = new Date(),
   }: WalletMutationProps): WalletErrors.WalletResult {
     const result = this.applyDebit(
       {
         id: operationId,
+        operationType,
         amount,
         occurredAt,
         type: "debit",
@@ -261,6 +273,7 @@ export class Wallet {
       this._newOperations.push({
         id: operationId,
         amount,
+        operationType,
         occurredAt: new Date(occurredAt),
         type: "debit",
       });
