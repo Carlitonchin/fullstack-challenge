@@ -26,6 +26,8 @@ The challenge is evaluated on architecture, domain modeling, correctness, real-t
 - Never break `bun run docker:up`. All required services must boot without manual configuration.
 - Never add undocumented shortcuts that would be hard to justify in an interview.
 - Never silently weaken domain invariants to make tests easier.
+- Never run migrations, generate migration files, or apply schema changes to the database through migration commands. Database migrations are always the user's responsibility.
+- Never edit `package.json` manually. Dependencies must only be added or changed through `bun add <package-name>` so the manifest and lockfile stay consistent.
 
 ## Current Repository Reality
 
