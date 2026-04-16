@@ -14,7 +14,7 @@ describe("Wallet outbox message", () => {
       aggregateType: "wallet",
       aggregateId: "wallet-1",
       eventType: "wallet.credited",
-      topic: "wallets.events",
+      exchangeName: "wallets.events",
       routingKey: "wallet.credited",
       idempotencyKey: "credit-1",
       payload: {
@@ -52,7 +52,7 @@ describe("Wallet outbox message", () => {
         aggregateType: "wallet",
         aggregateId: "wallet-1",
         eventType: "bet.debit.succeeded",
-        topic: "wallets.events",
+        exchangeName: "wallets.events",
         routingKey: "bet.debit.succeeded",
         idempotencyKey: "   ",
         payload: {
@@ -81,7 +81,7 @@ describe("Wallet outbox message", () => {
       aggregateType: "wallet",
       aggregateId: "wallet-1",
       eventType: "cashout.credit.succeeded.v2",
-      topic: "wallets.events",
+      exchangeName: "wallets.events",
       routingKey: "cashout.credit.succeeded.v2",
       idempotencyKey: "cashout-1",
       payload: {

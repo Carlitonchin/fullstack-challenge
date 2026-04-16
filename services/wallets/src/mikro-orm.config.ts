@@ -6,6 +6,7 @@ import { WalletOperationSchema } from "./infrastructure/schema/wallet-operation"
 import { WalletOutboxMessageSchema } from "./infrastructure/schema/wallet-outbox-message";
 import { Migration20260416153234 } from "./infrastructure/migrations/Migration20260416153234";
 import { Migration20260416162910 } from "./infrastructure/migrations/Migration20260416162910";
+import { Migration20260416210322 } from "./infrastructure/migrations/Migration20260416210322";
 
 export default defineConfig({
   clientUrl: process.env.DATABASE_URL,
@@ -18,7 +19,8 @@ export default defineConfig({
     migrationsList: [
       Migration20260416011113,
       Migration20260416153234,
-      Migration20260416162910
+      Migration20260416162910,
+      Migration20260416210322
     ],
   },
 });

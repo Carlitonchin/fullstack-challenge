@@ -1,6 +1,10 @@
 import { connect, type ChannelModel, type ConfirmChannel, type Message } from "amqplib";
 import { Injectable, Logger } from "@nestjs/common";
-import { type IBrokerPublisher, type PublishBrokerMessageCommand } from "@wallets/port/broker-publisher";
+import {
+  UnroutableBrokerMessageError,
+  type IBrokerPublisher,
+  type PublishBrokerMessageCommand,
+} from "@wallets/port/broker-publisher";
 import { OutboxConfigService } from "../config/outbox.config";
 
 @Injectable()
@@ -20,7 +24,12 @@ export class AmqpBrokerPublisher implements IBrokerPublisher {
     const payloadBuffer = Buffer.from(JSON.stringify(command.payload));
 
     await new Promise<void>((resolve, reject) => {
-      this.pendingMessages.set(command.messageId, { resolve, reject });
+      this.pendingMessages.set(command.messageId, {
+        exchangeName: command.exchangeName,
+        routingKey: command.routingKey,
+        resolve,
+        reject,
+      });
 
       channel.publish(
         command.exchangeName,
@@ -151,7 +160,11 @@ export class AmqpBrokerPublisher implements IBrokerPublisher {
 
     this.pendingMessages.delete(messageId);
     pendingMessage.reject(
-      new Error(`Message ${messageId} was returned by RabbitMQ as unroutable`),
+      new UnroutableBrokerMessageError(
+        messageId,
+        pendingMessage.exchangeName,
+        pendingMessage.routingKey,
+      ),
     );
   }
 
@@ -164,6 +177,8 @@ export class AmqpBrokerPublisher implements IBrokerPublisher {
 }
 
 type PendingMessage = {
+  exchangeName: string;
+  routingKey: string;
   resolve: () => void;
   reject: (error: Error) => void;
 };

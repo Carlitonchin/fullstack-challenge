@@ -216,6 +216,7 @@
           "enumItems": [
             "PENDING",
             "PROCESSING",
+            "UNROUTABLE",
             "PUBLISHED",
             "FAILED"
           ],
@@ -424,6 +425,7 @@
           "items": [
             "PENDING",
             "PROCESSING",
+            "UNROUTABLE",
             "PUBLISHED",
             "FAILED"
           ]
@@ -550,6 +552,7 @@
           "items": [
             "PENDING",
             "PROCESSING",
+            "UNROUTABLE",
             "PUBLISHED",
             "FAILED"
           ]
@@ -787,6 +790,7 @@
           "items": [
             "PENDING",
             "PROCESSING",
+            "UNROUTABLE",
             "PUBLISHED",
             "FAILED"
           ]
@@ -819,6 +823,7 @@
       "items": [
         "PENDING",
         "PROCESSING",
+        "UNROUTABLE",
         "PUBLISHED",
         "FAILED"
       ]

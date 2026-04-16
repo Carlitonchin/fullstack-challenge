@@ -3,6 +3,7 @@ import { defineEntity, type InferEntity, p } from "@mikro-orm/core";
 export enum WalletOutboxStatus {
   PENDING = "PENDING",
   PROCESSING = "PROCESSING",
+  UNROUTABLE = "UNROUTABLE",
   PUBLISHED = "PUBLISHED",
   FAILED = "FAILED",
 }

@@ -5,6 +5,7 @@ import {
 } from "@wallets/port/wallet-outbox.repository";
 import {
   BROKER_PUBLISHER,
+  UnroutableBrokerMessageError,
   type IBrokerPublisher,
 } from "@wallets/port/broker-publisher";
 import {
@@ -81,6 +82,23 @@ export class OutboxDispatcherService {
     } catch (error) {
       const reason = this.stringifyError(error);
       const nextAttemptNumber = message.attempts + 1;
+
+      if (error instanceof UnroutableBrokerMessageError) {
+        if (nextAttemptNumber >= this.outboxConfigService.values.maxAttempts) {
+          this.logger.log(
+            `Outbox message ${message.id} (${message.eventType}) exhausted retries without RabbitMQ bindings; marking as UNROUTABLE`,
+          );
+
+          await this.outboxRepository.markUnroutable({
+            messageId: message.id,
+            failedAt: now,
+            availableAt: this.calculateNextAvailableAt(nextAttemptNumber, now),
+            error: reason,
+            workerId,
+          });
+          return;
+        }
+      }
 
       this.logger.warn(
         `Outbox publish failed for ${message.id} (${message.eventType}): ${reason}`,

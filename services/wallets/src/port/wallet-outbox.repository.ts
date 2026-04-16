@@ -23,6 +23,14 @@ export type MarkWalletOutboxRetryParams = {
   workerId: string;
 };
 
+export type MarkWalletOutboxUnroutableParams = {
+  messageId: string;
+  availableAt: Date;
+  failedAt: Date;
+  error: string;
+  workerId: string;
+};
+
 export type MarkWalletOutboxFailedParams = {
   messageId: string;
   failedAt: Date;
@@ -40,6 +48,7 @@ export interface IWalletOutboxRepository {
   claimBatch(params: ClaimWalletOutboxBatchParams): Promise<WalletOutboxMessageRecord[]>;
   markPublished(params: MarkWalletOutboxPublishedParams): Promise<void>;
   markRetry(params: MarkWalletOutboxRetryParams): Promise<void>;
+  markUnroutable(params: MarkWalletOutboxUnroutableParams): Promise<void>;
   markFailed(params: MarkWalletOutboxFailedParams): Promise<void>;
   releaseExpiredLocks(params: ReleaseExpiredWalletOutboxLocksParams): Promise<number>;
 }

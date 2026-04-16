@@ -6,6 +6,7 @@ import type {
   MarkWalletOutboxFailedParams,
   MarkWalletOutboxPublishedParams,
   MarkWalletOutboxRetryParams,
+  MarkWalletOutboxUnroutableParams,
   ReleaseExpiredWalletOutboxLocksParams,
 } from "@wallets/port/wallet-outbox.repository";
 import {
@@ -157,6 +158,35 @@ export class WalletOutboxRepository implements IWalletOutboxRepository {
       `,
       [
         WalletOutboxStatus.PENDING,
+        params.availableAt,
+        params.error,
+        params.failedAt,
+        params.messageId,
+        WalletOutboxStatus.PROCESSING,
+        params.workerId,
+      ],
+    );
+  }
+
+  async markUnroutable(
+    params: MarkWalletOutboxUnroutableParams,
+  ): Promise<void> {
+    await this.em.getConnection().execute(
+      `
+        update wallet_outbox_messages
+        set status = ?,
+            attempts = attempts + 1,
+            available_at = ?,
+            locked_at = null,
+            locked_by = null,
+            last_error = ?,
+            updated_at = ?
+        where id = ?
+          and status = ?
+          and locked_by = ?
+      `,
+      [
+        WalletOutboxStatus.UNROUTABLE,
         params.availableAt,
         params.error,
         params.failedAt,
