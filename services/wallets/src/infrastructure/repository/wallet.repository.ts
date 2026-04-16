@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { MikroORM } from "@mikro-orm/postgresql";
+import { EntityManager, MikroORM } from "@mikro-orm/postgresql";
 import { Wallet, type PersistedWalletOperation } from "../../domain/wallet/wallet";
 import { WalletBalance } from "../../domain/wallet/wallet-balance";
 import type {
@@ -11,11 +11,10 @@ import { type IWalletOperation } from "../schema/wallet-operation";
 
 @Injectable()
 export class WalletRepository {
-  constructor(private readonly orm: MikroORM) {}
+  constructor(private readonly em: EntityManager) {}
 
   async findByPlayerId(playerId: string): Promise<WalletResult<Wallet | undefined>> {
-    const entityManager = this.orm.em.fork();
-    const walletRecord = await entityManager.findOne(
+    const walletRecord = await this.em.findOne(
       WalletSchema,
       { playerId },
       { populate: ["operations"] },
