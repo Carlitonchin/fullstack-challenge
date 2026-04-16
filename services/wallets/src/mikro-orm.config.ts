@@ -3,10 +3,11 @@ import { Migrator } from "@mikro-orm/migrations";
 import { Migration20260416011113 } from "./infrastructure/migrations/Migration20260416011113";
 import { WalletSchema } from "./infrastructure/schema/wallet"
 import { WalletOperationSchema } from "./infrastructure/schema/wallet-operation";
+import { WalletOutboxMessageSchema } from "./infrastructure/schema/wallet-outbox-message";
 
 export default defineConfig({
   clientUrl: process.env.DATABASE_URL,
-  entities: [WalletSchema, WalletOperationSchema],
+  entities: [WalletSchema, WalletOperationSchema, WalletOutboxMessageSchema],
   extensions: [Migrator],
   migrations: {
     path: "./src/infrastructure/migrations",
