@@ -5,10 +5,20 @@
   "scripts": {
     "dev": "bun run --watch src/main.ts",
     "start": "bun run src/main.ts",
+    "start:docker": "bun run migration:up && bun run src/main.ts",
     "test": "bun test tests/unit",
-    "test:e2e": "bun test tests/e2e"
+    "test:e2e": "bun test tests/e2e",
+    "migration:create": "mikro-orm --config ./src/mikro-orm.config.ts migration:create",
+    "migration:up": "mikro-orm --config ./src/mikro-orm.config.ts migration:up",
+    "migration:down": "mikro-orm --config ./src/mikro-orm.config.ts migration:down"
+  },
+  "mikro-orm": {
+    "tsLoader": "tsx"
   },
   "dependencies": {
+    "@mikro-orm/core": "^7.0.10",
+    "@mikro-orm/nestjs": "^7.0.1",
+    "@mikro-orm/postgresql": "^7.0.10",
     "@nestjs/common": "^11.1.17",
     "@nestjs/core": "^11.1.17",
     "@nestjs/platform-express": "^11.1.17",
@@ -16,7 +26,10 @@
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
+    "@mikro-orm/cli": "^7.0.10",
+    "@mikro-orm/migrations": "^7.0.10",
     "bun-types": "latest",
+    "tsx": "^4.21.0",
     "typescript": "^5.8.3"
   }
 }
