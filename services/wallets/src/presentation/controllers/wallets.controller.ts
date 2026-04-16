@@ -4,6 +4,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
   Req,
+  UseGuards,
 } from "@nestjs/common";
 import {
   ApiBearerAuth,
@@ -12,8 +13,10 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import { WalletRepository } from "../../infrastructure/repository/wallet.repository";
+import { KeycloakJwtAuthGuard } from "../auth/keycloak-jwt-auth.guard";
 import { HealthCheckResponseDto } from "../dtos/health-check-response.dto";
 import { WalletResponseDto } from "../dtos/wallet-response.dto";
 
@@ -35,11 +38,13 @@ export class WalletsController {
     return { status: "ok", service: "wallets" };
   }
 
-  @Get("wallets/me")
+  @Get("me")
+  @UseGuards(KeycloakJwtAuthGuard)
   @ApiBearerAuth("bearer")
   @ApiOperation({ summary: "Get the authenticated player's wallet" })
   @ApiOkResponse({ type: WalletResponseDto })
   @ApiNotFoundResponse({ description: "Wallet for the authenticated player was not found" })
+  @ApiUnauthorizedResponse({ description: "Bearer token is missing or invalid" })
   @ApiInternalServerErrorResponse({
     description: "Authenticated player id is missing or wallet reconstruction failed",
   })
