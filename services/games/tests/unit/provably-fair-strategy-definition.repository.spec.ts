@@ -7,18 +7,20 @@ describe("ProvablyFairStrategyDefinitionRepository", () => {
     const strategy = new CasinoCrashProvablyFairStrategy();
     const definition = strategy.definition;
     const em = {
-      findOne: async () => ({
-        id: definition.id,
-        algorithm: definition.algorithm,
-        displayName: definition.displayName,
-        description: definition.description,
-        hashAlgorithm: definition.hashAlgorithm,
-        outcomeAlgorithm: definition.outcomeAlgorithm,
-        houseEdgeDescription: definition.houseEdgeDescription,
-        verificationFormula: definition.verificationFormula,
-        verificationSteps: definition.verificationSteps,
-        createdAt: new Date("2026-04-17T00:00:00.000Z"),
-      }),
+      find: async () => [
+        {
+          id: definition.id,
+          algorithm: definition.algorithm,
+          displayName: definition.displayName,
+          description: definition.description,
+          hashAlgorithm: definition.hashAlgorithm,
+          outcomeAlgorithm: definition.outcomeAlgorithm,
+          houseEdgeDescription: definition.houseEdgeDescription,
+          verificationFormula: definition.verificationFormula,
+          verificationSteps: definition.verificationSteps,
+          createdAt: new Date("2026-04-17T00:00:00.000Z"),
+        },
+      ],
     };
     const repository = new ProvablyFairStrategyDefinitionRepository(em as never);
 

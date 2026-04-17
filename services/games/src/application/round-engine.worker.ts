@@ -10,6 +10,7 @@ import { GameOutboxService } from "@games/application/game-outbox.service";
 import { GameRealtimePublisher } from "@games/application/game-realtime.publisher";
 import { RoundFactoryService } from "@games/application/round-factory.service";
 import { Round } from "@games/domain/round/round";
+import { NEXT_ROUND_DELAY_IN_MS } from "@games/domain/round/round-timing.strategy";
 import { BetRepository } from "@games/infrastructure/repository/bet.repository";
 import { RoundRepository } from "@games/infrastructure/repository/round.repository";
 import { GameOutboxMessageSchema } from "@games/infrastructure/schema/game-outbox-message";
@@ -131,7 +132,7 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
         let currentRound = currentRoundResult.data;
 
         for (let iteration = 0; iteration < MAX_RECONCILE_STEPS; iteration += 1) {
-          if (!currentRound || currentRound.isSettled) {
+          if (!currentRound) {
             currentRound = await this.roundFactoryService.createRound({
               createdAt: now,
               entityManager: txEm,
@@ -144,6 +145,10 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
             });
             publishSnapshot = true;
             continue;
+          }
+
+          if (currentRound.isSettled) {
+            break;
           }
 
           if (currentRound.isError) {
@@ -408,6 +413,10 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
 
     if (currentRound.status === "ERROR") {
       return null;
+    }
+
+    if (currentRound.status === "SETTLED") {
+      return new Date(currentRound.settlesAt.getTime() + NEXT_ROUND_DELAY_IN_MS);
     }
 
     return new Date(now.getTime() + ENGINE_RETRY_DELAY_IN_MS);

@@ -1,8 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import {
   LogarithmicRoundTimingStrategy,
+  ROUND_CRASH_REVEAL_IN_MS,
   ROUND_DURATION_MAX_IN_MS,
   ROUND_DURATION_MIN_IN_MS,
+  ROUND_START_DELAY_IN_MS,
 } from "../../src/domain/round/round-timing.strategy";
 
 describe("LogarithmicRoundTimingStrategy", () => {
@@ -50,5 +52,22 @@ describe("LogarithmicRoundTimingStrategy", () => {
         at: new Date("2026-04-17T00:00:05.000Z"),
       }),
     ).toBe(3);
+  });
+
+  it("builds a schedule with a 30-second pause before the round starts", () => {
+    const strategy = new LogarithmicRoundTimingStrategy();
+    const bettingClosesAt = new Date("2026-04-17T00:00:10.000Z");
+
+    const schedule = strategy.buildSchedule({
+      bettingClosesAt,
+      crashPoint: 2,
+    });
+
+    expect(schedule.startsAt.getTime() - bettingClosesAt.getTime()).toBe(
+      ROUND_START_DELAY_IN_MS,
+    );
+    expect(
+      schedule.settlesAt.getTime() - schedule.scheduledCrashAt.getTime(),
+    ).toBe(ROUND_CRASH_REVEAL_IN_MS);
   });
 });

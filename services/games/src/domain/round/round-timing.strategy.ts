@@ -1,6 +1,7 @@
 export const BETTING_WINDOW_IN_SECONDS = 10;
-export const ROUND_START_DELAY_IN_MS = 500;
+export const ROUND_START_DELAY_IN_MS = 30_000;
 export const ROUND_CRASH_REVEAL_IN_MS = 2_000;
+export const NEXT_ROUND_DELAY_IN_MS = 60_000;
 export const ROUND_DURATION_MIN_IN_MS = 250;
 export const ROUND_DURATION_MAX_IN_MS = 20_000;
 export const ROUND_DURATION_LOG_SCALE = 4_500;
