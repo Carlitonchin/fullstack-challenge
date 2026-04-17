@@ -1,4 +1,3 @@
-import { Separator } from "@/components/ui/separator"
 import {
   CrashChart,
   BetControls,
@@ -15,6 +14,7 @@ import {
   usePlayer,
   useMyBets,
 } from "@/hooks/use-game-queries"
+import { logoutToLogin } from "@/lib/auth"
 
 export default function HomePage() {
   const roundQuery = useCurrentRound()
@@ -67,6 +67,7 @@ export default function HomePage() {
             player={playerQuery.data}
             wallet={walletQuery.data}
             isLoading={playerQuery.isLoading || walletQuery.isLoading}
+            onLogout={logoutToLogin}
           />
         </div>
       </header>

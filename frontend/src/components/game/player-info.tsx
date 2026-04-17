@@ -14,9 +14,15 @@ interface PlayerInfoProps {
   player: Player | undefined
   wallet: Wallet | undefined
   isLoading: boolean
+  onLogout: () => void
 }
 
-export function PlayerInfo({ player, wallet, isLoading }: PlayerInfoProps) {
+export function PlayerInfo({
+  player,
+  wallet,
+  isLoading,
+  onLogout,
+}: PlayerInfoProps) {
   if (isLoading) {
     return (
       <div className="flex items-center gap-3">
@@ -51,7 +57,12 @@ export function PlayerInfo({ player, wallet, isLoading }: PlayerInfoProps) {
 
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="sm" className="ml-auto size-8 p-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto size-8 p-0"
+            onClick={onLogout}
+          >
             <LogOutIcon data-icon="inline-start" />
             <span className="sr-only">Sign out</span>
           </Button>

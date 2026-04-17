@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from "react"
+import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
   Card,
   CardContent,
@@ -9,50 +9,55 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field"
-
-type FormErrors = {
-  username?: string
-  password?: string
-}
+import { beginLogin, ensureValidAccessToken, getAuthSession } from "@/lib/auth"
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
-  const [errors, setErrors] = useState<FormErrors>({})
-  const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const navigate = useNavigate()
+  const [isStartingLogin, setIsStartingLogin] = useState(false)
+  const [isBootstrapping, setIsBootstrapping] = useState(true)
 
-  function validate(): FormErrors {
-    const next: FormErrors = {}
-    if (!username.trim()) next.username = "Username is required."
-    if (!password) next.password = "Password is required."
-    return next
+  useEffect(() => {
+    let cancelled = false
+
+    async function bootstrapLoginPage() {
+      const session = getAuthSession()
+
+      if (!session) {
+        if (!cancelled) {
+          setIsBootstrapping(false)
+        }
+        return
+      }
+
+      try {
+        await ensureValidAccessToken()
+
+        if (!cancelled) {
+          navigate("/", { replace: true })
+        }
+      } catch {
+        if (!cancelled) {
+          setIsBootstrapping(false)
+        }
+      }
+    }
+
+    void bootstrapLoginPage()
+
+    return () => {
+      cancelled = true
+    }
+  }, [navigate])
+
+  async function handleLogin() {
+    setIsStartingLogin(true)
+
+    try {
+      await beginLogin("/")
+    } catch {
+      setIsStartingLogin(false)
+    }
   }
-
-  function handleBlur(field: string) {
-    setTouched((prev) => ({ ...prev, [field]: true }))
-    setErrors(validate())
-  }
-
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-    const validationErrors = validate()
-    setErrors(validationErrors)
-    setTouched({ username: true, password: true })
-
-    if (Object.keys(validationErrors).length > 0) return
-
-    // TODO: call auth API
-    console.log("submit", { username, password })
-  }
-
-  const showUsernameError = touched.username && !!errors.username
-  const showPasswordError = touched.password && !!errors.password
 
   return (
     <div className="relative flex min-h-svh items-center justify-center overflow-hidden bg-background px-4">
@@ -94,65 +99,32 @@ export default function LoginPage() {
           <CardHeader>
             <CardTitle>Sign in</CardTitle>
             <CardDescription>
-              Enter your credentials to continue.
+              Authenticate with Keycloak to continue.
             </CardDescription>
           </CardHeader>
 
           <CardContent>
-            <form id="login-form" onSubmit={handleSubmit} noValidate>
-              <FieldGroup>
-                <Field data-invalid={showUsernameError || undefined}>
-                  <FieldLabel htmlFor="username">Username</FieldLabel>
-                  <Input
-                    id="username"
-                    name="username"
-                    autoComplete="username"
-                    placeholder="johndoe"
-                    value={username}
-                    onChange={(e) => {
-                      setUsername(e.target.value)
-                      if (touched.username) setErrors(validate())
-                    }}
-                    onBlur={() => handleBlur("username")}
-                    aria-invalid={showUsernameError || undefined}
-                  />
-                  {showUsernameError && (
-                    <FieldError>{errors.username}</FieldError>
-                  )}
-                </Field>
-
-                <Field data-invalid={showPasswordError || undefined}>
-                  <FieldLabel htmlFor="password">Password</FieldLabel>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value)
-                      if (touched.password) setErrors(validate())
-                    }}
-                    onBlur={() => handleBlur("password")}
-                    aria-invalid={showPasswordError || undefined}
-                  />
-                  {showPasswordError && (
-                    <FieldError>{errors.password}</FieldError>
-                  )}
-                </Field>
-              </FieldGroup>
-            </form>
+            <p className="text-sm text-muted-foreground">
+              This application accepts login only. You will be redirected to the
+              configured Keycloak realm and returned here after authentication.
+            </p>
           </CardContent>
 
           <CardFooter>
             <Button
-              type="submit"
-              form="login-form"
+              type="button"
               className="w-full"
               size="lg"
+              onClick={() => {
+                void handleLogin()
+              }}
+              disabled={isStartingLogin || isBootstrapping}
             >
-              Continue
+              {isBootstrapping
+                ? "Checking session..."
+                : isStartingLogin
+                  ? "Redirecting..."
+                  : "Continue with Keycloak"}
             </Button>
           </CardFooter>
         </Card>
