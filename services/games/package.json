@@ -14,6 +14,8 @@
     "migration:down": "mikro-orm migration:down"
   },
   "dependencies": {
+    "@crash/messaging": "workspace:*",
+    "@crash/persistence": "workspace:*",
     "@mikro-orm/core": "^7.0.11",
     "@mikro-orm/nestjs": "^7.0.1",
     "@mikro-orm/postgresql": "^7.0.11",

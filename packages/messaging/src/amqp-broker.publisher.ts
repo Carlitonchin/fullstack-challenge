@@ -1,21 +1,20 @@
 import { connect, type ChannelModel, type ConfirmChannel, type Message } from "amqplib";
-import { Injectable, Logger } from "@nestjs/common";
-import {
-  UnroutableBrokerMessageError,
-  type IBrokerPublisher,
-  type PublishBrokerMessageCommand,
-} from "@wallets/port/broker-publisher";
-import { OutboxConfigService } from "../config/outbox.config";
+import { Logger } from "@nestjs/common";
+import { UnroutableBrokerMessageError } from "./errors";
+import type {
+  BrokerPublisher,
+  OutboxRuntimeConfig,
+  PublishBrokerMessageCommand,
+} from "./types";
 
-@Injectable()
-export class AmqpBrokerPublisher implements IBrokerPublisher {
+export class AmqpBrokerPublisher implements BrokerPublisher {
   private readonly logger = new Logger(AmqpBrokerPublisher.name);
   private connection: ChannelModel | null = null;
   private channel: ConfirmChannel | null = null;
   private readonly assertedExchanges = new Set<string>();
   private readonly pendingMessages = new Map<string, PendingMessage>();
 
-  constructor(private readonly outboxConfigService: OutboxConfigService) {}
+  constructor(private readonly outboxConfig: OutboxRuntimeConfig) {}
 
   async publish(command: PublishBrokerMessageCommand): Promise<void> {
     const channel = await this.getChannel();
@@ -91,7 +90,7 @@ export class AmqpBrokerPublisher implements IBrokerPublisher {
       return this.channel;
     }
 
-    const connection = await connect(this.outboxConfigService.values.rabbitMqUrl);
+    const connection = await connect(this.outboxConfig.rabbitMqUrl);
     const channel = await connection.createConfirmChannel();
 
     connection.on("close", () => {
@@ -135,11 +134,9 @@ export class AmqpBrokerPublisher implements IBrokerPublisher {
       return;
     }
 
-    await channel.assertExchange(
-      exchangeName,
-      this.outboxConfigService.values.exchangeType,
-      { durable: true },
-    );
+    await channel.assertExchange(exchangeName, this.outboxConfig.exchangeType, {
+      durable: true,
+    });
 
     this.assertedExchanges.add(exchangeName);
   }

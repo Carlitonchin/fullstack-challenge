@@ -1,18 +1,30 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
-import { OutboxDispatcherService } from "@wallets/application/outbox/outbox-dispatcher.service";
-import { OutboxConfigService } from "../config/outbox.config";
+import {
+  Inject,
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from "@nestjs/common";
+import { OutboxDispatcherService } from "./outbox-dispatcher.service";
+import { OUTBOX_RUNTIME_CONFIG } from "./tokens";
+import type { OutboxRuntimeConfig } from "./types";
 
 @Injectable()
 export class OutboxPublisherWorker implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(OutboxPublisherWorker.name);
-  private readonly workerId = `wallets:${Bun.randomUUIDv7()}`;
   private running = false;
   private loopPromise: Promise<void> | null = null;
+  private workerId = `outbox:${Bun.randomUUIDv7()}`;
 
   constructor(
     private readonly outboxDispatcherService: OutboxDispatcherService,
-    private readonly outboxConfigService: OutboxConfigService,
+    @Inject(OUTBOX_RUNTIME_CONFIG)
+    private readonly outboxConfig: OutboxRuntimeConfig,
   ) {}
+
+  setWorkerIdPrefix(prefix: string): void {
+    this.workerId = `${prefix}:${Bun.randomUUIDv7()}`;
+  }
 
   onModuleInit(): void {
     this.running = true;
@@ -28,20 +40,19 @@ export class OutboxPublisherWorker implements OnModuleInit, OnModuleDestroy {
   private async runLoop(): Promise<void> {
     while (this.running) {
       try {
-        const dispatchedMessages = await this.outboxDispatcherService.dispatchAvailableMessages(
-          this.workerId,
-        );
+        const dispatchedMessages =
+          await this.outboxDispatcherService.dispatchAvailableMessages(
+            this.workerId,
+          );
 
         const delayMs =
-          dispatchedMessages > 0
-            ? 25
-            : this.outboxConfigService.values.pollingIntervalMs;
+          dispatchedMessages > 0 ? 25 : this.outboxConfig.pollingIntervalMs;
 
         await this.sleep(delayMs);
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
         this.logger.error(`Outbox worker loop failed: ${reason}`);
-        await this.sleep(this.outboxConfigService.values.pollingIntervalMs);
+        await this.sleep(this.outboxConfig.pollingIntervalMs);
       }
     }
   }

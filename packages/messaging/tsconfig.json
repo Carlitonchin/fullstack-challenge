@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "types": ["bun-types"],
+    "types": ["bun"],
     "module": "commonjs",
     "declaration": true,
     "removeComments": true,
@@ -19,16 +19,10 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@crash/persistence": ["../../packages/persistence/src/index.ts"],
-      "@crash/messaging": ["../../packages/messaging/src/index.ts"],
-      "@wallets/*": ["./src/*"],
-      "@wallets/domain/*": ["./src/domain/*"],
-      "@wallets/application/*": ["./src/application/*"],
-      "@wallets/infrastructure/*": ["./src/infrastructure/*"],
-      "@wallets/presentation/*": ["./src/presentation/*"],
-      "@wallets/tests/*": ["./tests/*"]
+      "@crash/persistence": ["../persistence/src/index.ts"]
     }
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "tests"]
+  }
+  ,
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

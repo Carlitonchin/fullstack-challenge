@@ -1,4 +1,5 @@
 import { defineEntity, type InferEntity, p } from "@mikro-orm/core";
+import { BaseCreatedAtSchema } from "@crash/persistence";
 import { WalletSchema } from "./wallet";
 
 export enum WalletOperationType {
@@ -11,6 +12,7 @@ export enum WalletOperationType {
 export const WalletOperationSchema = defineEntity({
   name: "WalletOperation",
   tableName: "wallet_operations",
+  extends: BaseCreatedAtSchema,
   indexes: [
     {
       name: "wallet_operations_wallet_id_ledger_sequence_index",
@@ -43,11 +45,6 @@ export const WalletOperationSchema = defineEntity({
       .generated("identity")
       .unique("wallet_operations_ledger_sequence_unique")
       .check("ledger_sequence > 0"),
-    createdAt: p
-      .datetime()
-      .fieldName("created_at")
-      .columnType("timestamptz")
-      .onCreate(() => new Date()),
   },
 });
 

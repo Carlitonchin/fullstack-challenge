@@ -1,30 +1,37 @@
-import { Injectable } from "@nestjs/common";
 import { EntityManager } from "@mikro-orm/postgresql";
-import type {
-  ClaimWalletOutboxBatchParams,
-  IWalletOutboxRepository,
-  MarkWalletOutboxFailedParams,
-  MarkWalletOutboxPublishedParams,
-  MarkWalletOutboxRetryParams,
-  MarkWalletOutboxUnroutableParams,
-  ReleaseExpiredWalletOutboxLocksParams,
-} from "@wallets/port/wallet-outbox.repository";
+import { OutboxStatus } from "@crash/persistence";
 import {
-  createWalletOutboxMessageRecord,
-  WalletOutboxStatus,
-  WalletOutboxMessageRecord,
-  WalletOutboxMessageSchema,
-  type CreateWalletOutboxMessageProps,
-} from "../schema/wallet-outbox-message";
+  createOutboxMessageRecord,
+  mapRawOutboxRowToRecord,
+} from "./outbox-message";
+import type {
+  ClaimOutboxBatchParams,
+  CreateOutboxMessageProps,
+  MarkOutboxFailedParams,
+  MarkOutboxPublishedParams,
+  MarkOutboxRetryParams,
+  MarkOutboxUnroutableParams,
+  OutboxMessageRecord,
+  OutboxRepository,
+  RawOutboxRow,
+  ReleaseExpiredOutboxLocksParams,
+} from "./types";
 
-@Injectable()
-export class WalletOutboxRepository implements IWalletOutboxRepository {
-  constructor(private readonly em: EntityManager) {}
+export type PostgresOutboxRepositoryOptions = {
+  schema: unknown;
+  tableName: string;
+};
 
-  async insert(message: CreateWalletOutboxMessageProps): Promise<WalletOutboxMessageRecord> {
-    const record = createWalletOutboxMessageRecord(message);
+export class PostgresOutboxRepository implements OutboxRepository {
+  constructor(
+    private readonly em: EntityManager,
+    private readonly options: PostgresOutboxRepositoryOptions,
+  ) {}
 
-    const entity = this.em.create(WalletOutboxMessageSchema, {
+  async insert(message: CreateOutboxMessageProps): Promise<OutboxMessageRecord> {
+    const record = createOutboxMessageRecord(message);
+
+    const entity = this.em.create(this.options.schema as never, {
       id: record.id,
       aggregateType: record.aggregateType,
       aggregateId: record.aggregateId,
@@ -46,21 +53,19 @@ export class WalletOutboxRepository implements IWalletOutboxRepository {
       lastError: record.lastError,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
-    });
+    } as never);
 
     this.em.persist(entity);
 
     return record;
   }
 
-  async claimBatch(
-    params: ClaimWalletOutboxBatchParams,
-  ): Promise<WalletOutboxMessageRecord[]> {
-    const rows = await this.em.getConnection().execute<RawWalletOutboxRow[]>(
+  async claimBatch(params: ClaimOutboxBatchParams): Promise<OutboxMessageRecord[]> {
+    const rows = await this.em.getConnection().execute<RawOutboxRow[]>(
       `
         with candidates as (
           select id
-          from wallet_outbox_messages
+          from ${this.options.tableName}
           where available_at <= ?
             and (
               status = ?
@@ -70,7 +75,7 @@ export class WalletOutboxRepository implements IWalletOutboxRepository {
           limit ?
           for update skip locked
         )
-        update wallet_outbox_messages as messages
+        update ${this.options.tableName} as messages
         set status = ?,
             locked_at = ?,
             locked_by = ?,
@@ -102,24 +107,24 @@ export class WalletOutboxRepository implements IWalletOutboxRepository {
       `,
       [
         params.claimedAt,
-        WalletOutboxStatus.PENDING,
-        WalletOutboxStatus.PROCESSING,
+        OutboxStatus.PENDING,
+        OutboxStatus.PROCESSING,
         params.expiredLockAt,
         params.batchSize,
-        WalletOutboxStatus.PROCESSING,
+        OutboxStatus.PROCESSING,
         params.claimedAt,
         params.workerId,
         params.claimedAt,
       ],
     );
 
-    return rows.map((row) => this.mapRow(row));
+    return rows.map((row) => mapRawOutboxRowToRecord(row));
   }
 
-  async markPublished(params: MarkWalletOutboxPublishedParams): Promise<void> {
+  async markPublished(params: MarkOutboxPublishedParams): Promise<void> {
     await this.em.getConnection().execute(
       `
-        update wallet_outbox_messages
+        update ${this.options.tableName}
         set status = ?,
             published_at = ?,
             locked_at = null,
@@ -131,20 +136,20 @@ export class WalletOutboxRepository implements IWalletOutboxRepository {
           and locked_by = ?
       `,
       [
-        WalletOutboxStatus.PUBLISHED,
+        OutboxStatus.PUBLISHED,
         params.publishedAt,
         params.publishedAt,
         params.messageId,
-        WalletOutboxStatus.PROCESSING,
+        OutboxStatus.PROCESSING,
         params.workerId,
       ],
     );
   }
 
-  async markRetry(params: MarkWalletOutboxRetryParams): Promise<void> {
+  async markRetry(params: MarkOutboxRetryParams): Promise<void> {
     await this.em.getConnection().execute(
       `
-        update wallet_outbox_messages
+        update ${this.options.tableName}
         set status = ?,
             attempts = attempts + 1,
             available_at = ?,
@@ -157,23 +162,21 @@ export class WalletOutboxRepository implements IWalletOutboxRepository {
           and locked_by = ?
       `,
       [
-        WalletOutboxStatus.PENDING,
+        OutboxStatus.PENDING,
         params.availableAt,
         params.error,
         params.failedAt,
         params.messageId,
-        WalletOutboxStatus.PROCESSING,
+        OutboxStatus.PROCESSING,
         params.workerId,
       ],
     );
   }
 
-  async markUnroutable(
-    params: MarkWalletOutboxUnroutableParams,
-  ): Promise<void> {
+  async markUnroutable(params: MarkOutboxUnroutableParams): Promise<void> {
     await this.em.getConnection().execute(
       `
-        update wallet_outbox_messages
+        update ${this.options.tableName}
         set status = ?,
             attempts = attempts + 1,
             available_at = ?,
@@ -186,21 +189,21 @@ export class WalletOutboxRepository implements IWalletOutboxRepository {
           and locked_by = ?
       `,
       [
-        WalletOutboxStatus.UNROUTABLE,
+        OutboxStatus.UNROUTABLE,
         params.availableAt,
         params.error,
         params.failedAt,
         params.messageId,
-        WalletOutboxStatus.PROCESSING,
+        OutboxStatus.PROCESSING,
         params.workerId,
       ],
     );
   }
 
-  async markFailed(params: MarkWalletOutboxFailedParams): Promise<void> {
+  async markFailed(params: MarkOutboxFailedParams): Promise<void> {
     await this.em.getConnection().execute(
       `
-        update wallet_outbox_messages
+        update ${this.options.tableName}
         set status = ?,
             attempts = attempts + 1,
             locked_at = null,
@@ -212,22 +215,22 @@ export class WalletOutboxRepository implements IWalletOutboxRepository {
           and locked_by = ?
       `,
       [
-        WalletOutboxStatus.FAILED,
+        OutboxStatus.FAILED,
         params.error,
         params.failedAt,
         params.messageId,
-        WalletOutboxStatus.PROCESSING,
+        OutboxStatus.PROCESSING,
         params.workerId,
       ],
     );
   }
 
   async releaseExpiredLocks(
-    params: ReleaseExpiredWalletOutboxLocksParams,
+    params: ReleaseExpiredOutboxLocksParams,
   ): Promise<number> {
     const result = await this.em.getConnection().execute(
       `
-        update wallet_outbox_messages
+        update ${this.options.tableName}
         set status = ?,
             locked_at = null,
             locked_by = null,
@@ -237,9 +240,9 @@ export class WalletOutboxRepository implements IWalletOutboxRepository {
           and locked_at <= ?
       `,
       [
-        WalletOutboxStatus.PENDING,
+        OutboxStatus.PENDING,
         params.releasedAt,
-        WalletOutboxStatus.PROCESSING,
+        OutboxStatus.PROCESSING,
         params.expiredLockAt,
       ],
     );
@@ -255,54 +258,4 @@ export class WalletOutboxRepository implements IWalletOutboxRepository {
 
     return 0;
   }
-
-  private mapRow(row: RawWalletOutboxRow): WalletOutboxMessageRecord {
-    return createWalletOutboxMessageRecord({
-      id: row.id,
-      aggregateType: row.aggregate_type,
-      aggregateId: row.aggregate_id,
-      eventType: row.event_type,
-      exchangeName: row.exchange_name,
-      routingKey: row.routing_key,
-      payload: row.payload,
-      headers: row.headers,
-      correlationId: row.correlation_id,
-      causationId: row.causation_id,
-      idempotencyKey: row.idempotency_key,
-      partitionKey: row.partition_key,
-      status: row.status,
-      attempts: row.attempts,
-      availableAt: new Date(row.available_at),
-      lockedAt: row.locked_at ? new Date(row.locked_at) : null,
-      lockedBy: row.locked_by,
-      publishedAt: row.published_at ? new Date(row.published_at) : null,
-      lastError: row.last_error,
-      createdAt: new Date(row.created_at),
-      updatedAt: new Date(row.updated_at),
-    });
-  }
 }
-
-type RawWalletOutboxRow = {
-  id: string;
-  aggregate_type: string;
-  aggregate_id: string;
-  event_type: string;
-  exchange_name: string;
-  routing_key: string;
-  payload: WalletOutboxMessageRecord["payload"];
-  headers: WalletOutboxMessageRecord["headers"];
-  correlation_id: string | null;
-  causation_id: string | null;
-  idempotency_key: string;
-  partition_key: string | null;
-  status: WalletOutboxStatus;
-  attempts: number;
-  available_at: string | Date;
-  locked_at: string | Date | null;
-  locked_by: string | null;
-  published_at: string | Date | null;
-  last_error: string | null;
-  created_at: string | Date;
-  updated_at: string | Date;
-};

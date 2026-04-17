@@ -1,4 +1,5 @@
 import { defineEntity, type InferEntity, p } from "@mikro-orm/core";
+import { BaseCreatedAtSchema } from "@crash/persistence";
 import { RoundSchema } from "./round";
 
 export type PersistedProvablyFairVerificationStep = {
@@ -81,6 +82,7 @@ export function createProvablyFairStrategyDefinitionSnapshotRecord(
 export const ProvablyFairStrategyDefinitionSchema = defineEntity({
   name: "ProvablyFairStrategyDefinitionSnapshot",
   tableName: "provably_fair_strategy_definitions",
+  extends: BaseCreatedAtSchema,
   indexes: [
     {
       name: "provably_fair_strategy_definitions_strategy_id_created_at_index",
@@ -126,11 +128,6 @@ export const ProvablyFairStrategyDefinitionSchema = defineEntity({
       .json()
       .fieldName("verification_steps")
       .columnType("jsonb"),
-    createdAt: p
-      .datetime()
-      .fieldName("created_at")
-      .columnType("timestamptz")
-      .onCreate(() => new Date()),
     rounds: () => p.oneToMany(RoundSchema).mappedBy("provablyFairStrategy"),
   },
 });

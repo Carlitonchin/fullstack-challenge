@@ -46,10 +46,44 @@
         "vite": "^7.3.1",
       },
     },
+    "packages/messaging": {
+      "name": "@crash/messaging",
+      "version": "0.0.1",
+      "dependencies": {
+        "@crash/persistence": "workspace:*",
+        "@mikro-orm/core": "^7.0.11",
+        "@mikro-orm/postgresql": "^7.0.11",
+        "@nestjs/common": "^11.1.17",
+        "@nestjs/core": "^11.1.17",
+        "amqplib": "^1.0.3",
+      },
+      "devDependencies": {
+        "@types/amqplib": "^0.10.8",
+        "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "packages/persistence": {
+      "name": "@crash/persistence",
+      "version": "0.0.1",
+      "dependencies": {
+        "@mikro-orm/core": "^7.0.11",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
     "services/games": {
       "name": "@crash/games",
       "version": "0.0.1",
       "dependencies": {
+        "@crash/messaging": "workspace:*",
+        "@crash/persistence": "workspace:*",
         "@mikro-orm/core": "^7.0.11",
         "@mikro-orm/nestjs": "^7.0.1",
         "@mikro-orm/postgresql": "^7.0.11",
@@ -76,9 +110,11 @@
       "name": "@crash/wallets",
       "version": "0.0.1",
       "dependencies": {
-        "@mikro-orm/core": "^7.0.10",
+        "@crash/messaging": "workspace:*",
+        "@crash/persistence": "workspace:*",
+        "@mikro-orm/core": "^7.0.11",
         "@mikro-orm/nestjs": "^7.0.1",
-        "@mikro-orm/postgresql": "^7.0.10",
+        "@mikro-orm/postgresql": "^7.0.11",
         "@nestjs/common": "^11.1.17",
         "@nestjs/core": "^11.1.17",
         "@nestjs/platform-express": "^11.1.17",
@@ -89,8 +125,8 @@
         "swagger-ui-express": "^5.0.1",
       },
       "devDependencies": {
-        "@mikro-orm/cli": "^7.0.10",
-        "@mikro-orm/migrations": "^7.0.10",
+        "@mikro-orm/cli": "^7.0.11",
+        "@mikro-orm/migrations": "^7.0.11",
         "bun-types": "latest",
         "tsx": "^4.21.0",
         "typescript": "^5.8.3",
@@ -161,6 +197,10 @@
     "@borewit/text-codec": ["@borewit/text-codec@0.2.2", "", {}, "sha512-DDaRehssg1aNrH4+2hnj1B7vnUGEjU6OIlyRdkMd0aUdIUvKXrJfXsy8LVtXAy7DRvYVluWbMspsRhz2lcW0mQ=="],
 
     "@crash/games": ["@crash/games@workspace:services/games"],
+
+    "@crash/messaging": ["@crash/messaging@workspace:packages/messaging"],
+
+    "@crash/persistence": ["@crash/persistence@workspace:packages/persistence"],
 
     "@crash/wallets": ["@crash/wallets@workspace:services/wallets"],
 
@@ -555,6 +595,8 @@
     "@types/babel__template": ["@types/babel__template@7.4.4", "", { "dependencies": { "@babel/parser": "^7.1.0", "@babel/types": "^7.0.0" } }, "sha512-h/NUaSyG5EyxBIp8YRxo4RMe2/qQgvyowRwVMzhYhBCONbW8PUsg4lkFMrhgZhUe5z3L3MiLDuvyJ/CaPa2A8A=="],
 
     "@types/babel__traverse": ["@types/babel__traverse@7.28.0", "", { "dependencies": { "@babel/types": "^7.28.2" } }, "sha512-8PvcXf70gTDZBgt9ptxJ8elBeBjcLOAcOtoO/mPJjtji1+CdGbHgm77om1GrsPxsiE+uXIpNSK64UYaIwQXd4Q=="],
+
+    "@types/bun": ["@types/bun@1.3.12", "", { "dependencies": { "bun-types": "1.3.12" } }, "sha512-DBv81elK+/VSwXHDlnH3Qduw+KxkTIWi7TXkAeh24zpi5l0B2kUg9Ga3tb4nJaPcOFswflgi/yAvMVBPrxMB+A=="],
 
     "@types/estree": ["@types/estree@1.0.8", "", {}, "sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w=="],
 

@@ -1,11 +1,16 @@
 import { UniqueConstraintViolationException } from "@mikro-orm/core";
 import { EntityManager } from "@mikro-orm/postgresql";
 import {
+  OUTBOX_REPOSITORY,
+  type OutboxRepository,
+} from "@crash/messaging";
+import {
   ConflictException,
   Inject,
   Injectable,
   InternalServerErrorException,
 } from "@nestjs/common";
+import { WalletDomainEventOutboxMapper } from "@wallets/application/outbox/wallet-domain-event-outbox.mapper";
 import { Wallet } from "@wallets/domain/wallet/wallet";
 import { WalletBalance } from "@wallets/domain/wallet/wallet-balance";
 import {
@@ -13,27 +18,22 @@ import {
   type ITimeProvider,
 } from "@wallets/port/time-provider";
 import {
-  WALLET_OUTBOX_REPOSITORY,
-  type IWalletOutboxRepository,
-} from "@wallets/port/wallet-outbox.repository";
-import {
   WALLET_REPOSITORY,
   type IWalletRepository,
 } from "@wallets/port/wallet.repository";
 
 const INITIAL_BALANCE_IN_CENTS = 10_000n;
-const OUTBOX_EXCHANGE_NAME = "wallets.domain";
-const AGGREGATE_TYPE = "wallet";
 
 @Injectable()
 export class CreateMyWalletUseCase {
   constructor(
     @Inject(WALLET_REPOSITORY)
     private readonly walletRepository: IWalletRepository,
-    @Inject(WALLET_OUTBOX_REPOSITORY)
-    private readonly walletOutboxRepository: IWalletOutboxRepository,
+    @Inject(OUTBOX_REPOSITORY)
+    private readonly outboxRepository: OutboxRepository,
     @Inject(TIME_PROVIDER)
     private readonly timeProvider: ITimeProvider,
+    private readonly walletDomainEventOutboxMapper: WalletDomainEventOutboxMapper,
     private readonly em: EntityManager,
   ) {}
 
@@ -111,35 +111,13 @@ export class CreateMyWalletUseCase {
     for (const event of events) {
       const outboxId = Bun.randomUUIDv7();
 
-      await this.walletOutboxRepository.insert({
-        id: outboxId,
-        aggregateType: AGGREGATE_TYPE,
-        aggregateId: wallet.id,
-        eventType: event.type,
-        exchangeName: OUTBOX_EXCHANGE_NAME,
-        routingKey: event.type,
-        idempotencyKey: event.idempotencyKey,
-        payload: {
-          eventType: event.type,
-          occurredAt: event.occurredAt.toISOString(),
-          version: 1,
-          aggregate: {
-            type: AGGREGATE_TYPE,
-            id: wallet.id,
-          },
-          metadata: {
-            idempotencyKey: event.idempotencyKey,
-            producer: "wallets",
-            aggregateType: AGGREGATE_TYPE,
-            aggregateId: wallet.id,
-            outboxId,
-          },
-          data: event.serialize(),
-        },
-        createdAt: now,
-        updatedAt: now,
-        availableAt: now,
-      });
+      await this.outboxRepository.insert(
+        this.walletDomainEventOutboxMapper.map({
+          event,
+          outboxId,
+          persistedAt: now,
+        }),
+      );
     }
 
     try {

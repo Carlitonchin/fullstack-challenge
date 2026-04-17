@@ -1,38 +1,40 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
-import {
-  WALLET_OUTBOX_REPOSITORY,
-  type IWalletOutboxRepository,
-} from "@wallets/port/wallet-outbox.repository";
+import { UnroutableBrokerMessageError } from "./errors";
+import { calculateNextAttemptAt } from "./outbox-message";
 import {
   BROKER_PUBLISHER,
-  UnroutableBrokerMessageError,
-  type IBrokerPublisher,
-} from "@wallets/port/broker-publisher";
-import {
-  TIME_PROVIDER,
-  type ITimeProvider,
-} from "@wallets/port/time-provider";
-import { OutboxConfigService } from "@wallets/infrastructure/config/outbox.config";
-import type { WalletOutboxMessageRecord } from "@wallets/infrastructure/schema/wallet-outbox-message";
+  CLOCK,
+  OUTBOX_REPOSITORY,
+  OUTBOX_RUNTIME_CONFIG,
+} from "./tokens";
+import type {
+  BrokerPublisher,
+  Clock,
+  OutboxMessageRecord,
+  OutboxRepository,
+  OutboxRuntimeConfig,
+} from "./types";
 
 @Injectable()
 export class OutboxDispatcherService {
   private readonly logger = new Logger(OutboxDispatcherService.name);
 
   constructor(
-    @Inject(WALLET_OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IWalletOutboxRepository,
+    @Inject(OUTBOX_REPOSITORY)
+    private readonly outboxRepository: OutboxRepository,
     @Inject(BROKER_PUBLISHER)
-    private readonly brokerPublisher: IBrokerPublisher,
-    @Inject(TIME_PROVIDER)
-    private readonly timeProvider: ITimeProvider,
-    private readonly outboxConfigService: OutboxConfigService,
+    private readonly brokerPublisher: BrokerPublisher,
+    @Inject(CLOCK)
+    private readonly clock: Clock,
+    @Inject(OUTBOX_RUNTIME_CONFIG)
+    private readonly outboxConfig: OutboxRuntimeConfig,
   ) {}
 
   async dispatchAvailableMessages(workerId: string): Promise<number> {
-    const now = this.timeProvider.now();
-    const config = this.outboxConfigService.values;
-    const expiredLockAt = new Date(now.getTime() - config.lockTimeoutMs);
+    const now = this.clock.now();
+    const expiredLockAt = new Date(
+      now.getTime() - this.outboxConfig.lockTimeoutMs,
+    );
 
     await this.outboxRepository.releaseExpiredLocks({
       expiredLockAt,
@@ -40,7 +42,7 @@ export class OutboxDispatcherService {
     });
 
     const messages = await this.outboxRepository.claimBatch({
-      batchSize: config.batchSize,
+      batchSize: this.outboxConfig.batchSize,
       claimedAt: now,
       expiredLockAt,
       workerId,
@@ -58,7 +60,7 @@ export class OutboxDispatcherService {
   }
 
   private async dispatchMessage(
-    message: WalletOutboxMessageRecord,
+    message: OutboxMessageRecord,
     workerId: string,
     now: Date,
   ): Promise<void> {
@@ -84,7 +86,7 @@ export class OutboxDispatcherService {
       const nextAttemptNumber = message.attempts + 1;
 
       if (error instanceof UnroutableBrokerMessageError) {
-        if (nextAttemptNumber >= this.outboxConfigService.values.maxAttempts) {
+        if (nextAttemptNumber >= this.outboxConfig.maxAttempts) {
           this.logger.log(
             `Outbox message ${message.id} (${message.eventType}) exhausted retries without RabbitMQ bindings; marking as UNROUTABLE`,
           );
@@ -92,7 +94,11 @@ export class OutboxDispatcherService {
           await this.outboxRepository.markUnroutable({
             messageId: message.id,
             failedAt: now,
-            availableAt: this.calculateNextAvailableAt(nextAttemptNumber, now),
+            availableAt: calculateNextAttemptAt(
+              nextAttemptNumber,
+              now,
+              this.outboxConfig.maxBackoffMs,
+            ),
             error: reason,
             workerId,
           });
@@ -104,7 +110,7 @@ export class OutboxDispatcherService {
         `Outbox publish failed for ${message.id} (${message.eventType}): ${reason}`,
       );
 
-      if (nextAttemptNumber >= this.outboxConfigService.values.maxAttempts) {
+      if (nextAttemptNumber >= this.outboxConfig.maxAttempts) {
         await this.outboxRepository.markFailed({
           messageId: message.id,
           failedAt: now,
@@ -117,19 +123,15 @@ export class OutboxDispatcherService {
       await this.outboxRepository.markRetry({
         messageId: message.id,
         failedAt: now,
-        availableAt: this.calculateNextAvailableAt(nextAttemptNumber, now),
+        availableAt: calculateNextAttemptAt(
+          nextAttemptNumber,
+          now,
+          this.outboxConfig.maxBackoffMs,
+        ),
         error: reason,
         workerId,
       });
     }
-  }
-
-  private calculateNextAvailableAt(attemptNumber: number, now: Date): Date {
-    const maxBackoffMs = this.outboxConfigService.values.maxBackoffMs;
-    const baseDelayMs = Math.min(1000 * 2 ** (attemptNumber - 1), maxBackoffMs);
-    const jitterMs = Math.floor(Math.random() * Math.max(250, baseDelayMs / 4));
-
-    return new Date(now.getTime() + Math.min(baseDelayMs + jitterMs, maxBackoffMs));
   }
 
   private stringifyError(error: unknown): string {

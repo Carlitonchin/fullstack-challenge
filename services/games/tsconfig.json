@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "types": ["bun-types"],
     "module": "commonjs",
     "declaration": true,
     "removeComments": true,
@@ -18,6 +19,8 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
+      "@crash/persistence": ["../../packages/persistence/src/index.ts"],
+      "@crash/messaging": ["../../packages/messaging/src/index.ts"],
       "@games/*": ["./src/*"],
       "@games/domain/*": ["./src/domain/*"],
       "@games/application/*": ["./src/application/*"],

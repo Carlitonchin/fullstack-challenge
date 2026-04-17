@@ -8,10 +8,16 @@ import { Migration20260417134115 } from "./infrastructure/migrations/Migration20
 import { BetSchema } from "./infrastructure/schema/bet";
 import { Migration20260417141719 } from "./infrastructure/migrations/Migration20260417141719";
 import { Migration20260417142105 } from "./infrastructure/migrations/Migration20260417142105";
+import { GameOutboxMessageSchema } from "./infrastructure/schema/game-outbox-message";
 
 export default defineConfig({
   clientUrl: process.env.DATABASE_URL,
-  entities: [ProvablyFairStrategyDefinitionSchema, RoundSchema, BetSchema],
+  entities: [
+    ProvablyFairStrategyDefinitionSchema,
+    RoundSchema,
+    BetSchema,
+    GameOutboxMessageSchema,
+  ],
   extensions: [Migrator],
   migrations: {
     path: "./src/infrastructure/migrations",

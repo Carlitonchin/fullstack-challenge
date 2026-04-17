@@ -1,4 +1,5 @@
 import { defineEntity, type InferEntity, p } from "@mikro-orm/core";
+import { BaseCreatedAtSchema } from "@crash/persistence";
 import { WalletOperationSchema } from "./wallet-operation";
 
 export enum WalletCurrencyType {
@@ -8,15 +9,11 @@ export enum WalletCurrencyType {
 export const WalletSchema = defineEntity({
     name: "WalletSchema",
     tableName: "wallets",
+    extends: BaseCreatedAtSchema,
     properties: {
         id: p.text().primary(),
         playerId: p.text().fieldName("player_id").unique("wallets_player_id_unique"),
         currency: p.enum(() => WalletCurrencyType).nativeEnumName("wallet_currency_type"),
-        createdAt: p
-            .datetime()
-            .fieldName("created_at")
-            .columnType("timestamptz")
-            .onCreate(() => new Date()),
         operations: () =>
             p
                 .oneToMany(WalletOperationSchema)

@@ -17,9 +17,11 @@
     "tsLoader": "tsx"
   },
   "dependencies": {
-    "@mikro-orm/core": "^7.0.10",
+    "@crash/messaging": "workspace:*",
+    "@crash/persistence": "workspace:*",
+    "@mikro-orm/core": "^7.0.11",
     "@mikro-orm/nestjs": "^7.0.1",
-    "@mikro-orm/postgresql": "^7.0.10",
+    "@mikro-orm/postgresql": "^7.0.11",
     "@nestjs/common": "^11.1.17",
     "@nestjs/core": "^11.1.17",
     "@nestjs/platform-express": "^11.1.17",
@@ -30,8 +32,8 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
-    "@mikro-orm/cli": "^7.0.10",
-    "@mikro-orm/migrations": "^7.0.10",
+    "@mikro-orm/cli": "^7.0.11",
+    "@mikro-orm/migrations": "^7.0.11",
     "bun-types": "latest",
     "tsx": "^4.21.0",
     "typescript": "^5.8.3"

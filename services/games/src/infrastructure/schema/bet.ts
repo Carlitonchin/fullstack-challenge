@@ -1,4 +1,5 @@
 import { defineEntity, type InferEntity, p } from "@mikro-orm/core";
+import { BaseVersionedAggregateSchema } from "@crash/persistence";
 import { RoundSchema } from "./round";
 
 export enum BetStatusType {
@@ -13,6 +14,7 @@ export enum BetStatusType {
 export const BetSchema = defineEntity({
   name: "Bet",
   tableName: "bets",
+  extends: BaseVersionedAggregateSchema,
   indexes: [
     {
       name: "bets_round_id_created_at_index",
@@ -29,7 +31,6 @@ export const BetSchema = defineEntity({
   ],
   properties: {
     id: p.text().primary(),
-    version: p.integer().fieldName("version").default(1).check("version > 0").version(),
     round: () =>
       p
         .manyToOne(RoundSchema)
@@ -85,11 +86,6 @@ export const BetSchema = defineEntity({
       .fieldName("settled_at")
       .columnType("timestamptz")
       .nullable(),
-    createdAt: p
-      .datetime()
-      .fieldName("created_at")
-      .columnType("timestamptz")
-      .onCreate(() => new Date()),
   },
 });
 

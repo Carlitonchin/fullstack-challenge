@@ -1,29 +1,24 @@
 /// <reference types="bun-types" />
 
 import { describe, expect, it, mock } from "bun:test";
-import { OutboxDispatcherService } from "../../src/application/outbox/outbox-dispatcher.service";
-import { type OutboxRuntimeConfig } from "../../src/infrastructure/config/outbox.config";
+import { OutboxStatus } from "@crash/persistence";
 import {
-  WalletOutboxStatus,
-  type WalletOutboxMessageRecord,
-} from "../../src/infrastructure/schema/wallet-outbox-message";
-import {
+  OutboxDispatcherService,
   UnroutableBrokerMessageError,
-  type IBrokerPublisher,
-} from "../../src/port/broker-publisher";
-import {
-  type IWalletOutboxRepository,
-  type MarkWalletOutboxRetryParams,
-  type MarkWalletOutboxUnroutableParams,
-} from "../../src/port/wallet-outbox.repository";
-import { type ITimeProvider } from "../../src/port/time-provider";
+  type BrokerPublisher,
+  type Clock,
+  type MarkOutboxRetryParams,
+  type OutboxMessageRecord,
+  type OutboxRepository,
+  type OutboxRuntimeConfig,
+} from "../../src";
 
 describe("OutboxDispatcherService", () => {
   const FIXED_NOW = new Date("2026-04-16T12:00:00.000Z");
 
   function createMessage(
-    overrides: Partial<WalletOutboxMessageRecord> = {},
-  ): WalletOutboxMessageRecord {
+    overrides: Partial<OutboxMessageRecord> = {},
+  ): OutboxMessageRecord {
     return {
       id: "outbox-1",
       aggregateType: "wallet",
@@ -54,7 +49,7 @@ describe("OutboxDispatcherService", () => {
       causationId: null,
       idempotencyKey: "wallet-1",
       partitionKey: null,
-      status: WalletOutboxStatus.PROCESSING,
+      status: OutboxStatus.PROCESSING,
       attempts: 0,
       availableAt: FIXED_NOW,
       lockedAt: FIXED_NOW,
@@ -83,8 +78,8 @@ describe("OutboxDispatcherService", () => {
   }
 
   function createRepository(
-    overrides: Partial<IWalletOutboxRepository> = {},
-  ): IWalletOutboxRepository {
+    overrides: Partial<OutboxRepository> = {},
+  ): OutboxRepository {
     return {
       insert: mock(async () => createMessage()),
       releaseExpiredLocks: mock(async () => 0),
@@ -97,7 +92,9 @@ describe("OutboxDispatcherService", () => {
     };
   }
 
-  function createPublisher(overrides: Partial<IBrokerPublisher> = {}): IBrokerPublisher {
+  function createPublisher(
+    overrides: Partial<BrokerPublisher> = {},
+  ): BrokerPublisher {
     return {
       publish: mock(async () => undefined),
       close: mock(async () => undefined),
@@ -105,22 +102,22 @@ describe("OutboxDispatcherService", () => {
     };
   }
 
-  function createTimeProvider(): ITimeProvider {
+  function createClock(): Clock {
     return {
       now: () => FIXED_NOW,
     };
   }
 
   function createService(params?: {
-    repository?: IWalletOutboxRepository;
-    publisher?: IBrokerPublisher;
+    repository?: OutboxRepository;
+    publisher?: BrokerPublisher;
     config?: Partial<OutboxRuntimeConfig>;
   }): OutboxDispatcherService {
     return new OutboxDispatcherService(
       params?.repository ?? createRepository(),
       params?.publisher ?? createPublisher(),
-      createTimeProvider(),
-      { values: createConfig(params?.config) },
+      createClock(),
+      createConfig(params?.config),
     );
   }
 
@@ -140,13 +137,14 @@ describe("OutboxDispatcherService", () => {
   });
 
   it("retries a failed publish with a future availability date", async () => {
-    let receivedRetryParams: MarkWalletOutboxRetryParams | null = null;
+    let receivedRetryParams: MarkOutboxRetryParams | null = null;
+    const markRetry = mock(async (params: MarkOutboxRetryParams) => {
+      receivedRetryParams = params;
+    });
     const service = createService({
       repository: createRepository({
         claimBatch: mock(async () => [createMessage({ attempts: 1 })]),
-        markRetry: mock(async (params: MarkWalletOutboxRetryParams) => {
-          receivedRetryParams = params;
-        }),
+        markRetry,
       }),
       publisher: createPublisher({
         publish: mock(async () => {
@@ -165,17 +163,13 @@ describe("OutboxDispatcherService", () => {
   });
 
   it("keeps retrying unroutable messages before max attempts is reached", async () => {
-    let receivedRetryParams: MarkWalletOutboxRetryParams | null = null;
-    let receivedUnroutableParams: MarkWalletOutboxUnroutableParams | null = null;
+    const markRetry = mock(async () => undefined);
+    const markUnroutable = mock(async () => undefined);
     const service = createService({
       repository: createRepository({
         claimBatch: mock(async () => [createMessage({ attempts: 0 })]),
-        markRetry: mock(async (params: MarkWalletOutboxRetryParams) => {
-          receivedRetryParams = params;
-        }),
-        markUnroutable: mock(async (params: MarkWalletOutboxUnroutableParams) => {
-          receivedUnroutableParams = params;
-        }),
+        markRetry,
+        markUnroutable,
       }),
       publisher: createPublisher({
         publish: mock(async () => {
@@ -191,20 +185,18 @@ describe("OutboxDispatcherService", () => {
 
     await service.dispatchAvailableMessages("worker-1");
 
-    expect(receivedRetryParams).not.toBeNull();
-    expect(receivedUnroutableParams).toBeNull();
+    expect(markRetry).toHaveBeenCalledTimes(1);
+    expect(markUnroutable).toHaveBeenCalledTimes(0);
   });
 
   it("marks unroutable messages as UNROUTABLE only after retries are exhausted", async () => {
-    let receivedUnroutableParams: MarkWalletOutboxUnroutableParams | null = null;
     const markFailed = mock(async () => undefined);
+    const markUnroutable = mock(async () => undefined);
     const service = createService({
       repository: createRepository({
         claimBatch: mock(async () => [createMessage({ attempts: 0 })]),
         markFailed,
-        markUnroutable: mock(async (params: MarkWalletOutboxUnroutableParams) => {
-          receivedUnroutableParams = params;
-        }),
+        markUnroutable,
       }),
       publisher: createPublisher({
         publish: mock(async () => {
@@ -220,8 +212,7 @@ describe("OutboxDispatcherService", () => {
 
     await service.dispatchAvailableMessages("worker-1");
 
-    expect(receivedUnroutableParams).not.toBeNull();
-    expect(receivedUnroutableParams!.availableAt).toBeInstanceOf(Date);
+    expect(markUnroutable).toHaveBeenCalledTimes(1);
     expect(markFailed).toHaveBeenCalledTimes(0);
   });
 
