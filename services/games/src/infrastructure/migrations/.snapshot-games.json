@@ -612,6 +612,15 @@
           "unique": false
         },
         {
+          "keyName": "rounds_single_active_round_unique",
+          "columnNames": [],
+          "composite": false,
+          "constraint": true,
+          "primary": false,
+          "unique": true,
+          "expression": "create unique index \"rounds_single_active_round_unique\" on \"rounds\" ((true)) where \"status\" not in ('SETTLED', 'ERROR')"
+        },
+        {
           "keyName": "rounds_pkey",
           "columnNames": [
             "id"

@@ -24,6 +24,14 @@ export const RoundSchema = defineEntity({
       properties: ["provablyFairStrategy", "createdAt"],
     },
   ],
+  uniques: [
+    {
+      name: "rounds_single_active_round_unique",
+      expression:
+        `create unique index "rounds_single_active_round_unique" on "rounds" ((true)) ` +
+        `where "status" not in ('SETTLED', 'ERROR')`,
+    },
+  ],
   properties: {
     id: p.text().primary(),
     version: p.integer().fieldName("version").default(1).check("version > 0").version(),

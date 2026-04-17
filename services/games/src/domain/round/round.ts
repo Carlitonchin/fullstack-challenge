@@ -252,8 +252,12 @@ export class Round {
     return this._status === RoundStatus.SETTLED;
   }
 
+  get isActive(): boolean {
+    return !this.isSettled && !this.isError;
+  }
+
   get isTerminal(): boolean {
-    return this.isCrashed || this.isSettled || this.isError;
+    return !this.isActive;
   }
 
   get isServerSeedRevealed(): boolean {

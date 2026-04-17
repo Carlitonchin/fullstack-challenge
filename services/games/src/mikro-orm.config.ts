@@ -8,6 +8,7 @@ import { Migration20260417134115 } from "./infrastructure/migrations/Migration20
 import { BetSchema } from "./infrastructure/schema/bet";
 import { Migration20260417141719 } from "./infrastructure/migrations/Migration20260417141719";
 import { Migration20260417142105 } from "./infrastructure/migrations/Migration20260417142105";
+import { Migration20260417144938 } from "./infrastructure/migrations/Migration20260417144938";
 
 export default defineConfig({
   clientUrl: process.env.DATABASE_URL,
@@ -22,7 +23,8 @@ export default defineConfig({
       Migration20260417133247,
       Migration20260417134115,
       Migration20260417141719,
-      Migration20260417142105
+      Migration20260417142105,
+      Migration20260417144938
     ],
   },
 });
