@@ -10,7 +10,6 @@ export interface IProvablyFairStrategyDefinitionRepository {
     ProvablyFairResult<ProvablyFairStrategyDefinition | undefined>
   >;
   persist(params: {
-    snapshotId: string;
     definition: ProvablyFairStrategyDefinition;
     createdAt?: Date;
   }): Promise<ProvablyFairResult<ProvablyFairStrategyDefinition>>;

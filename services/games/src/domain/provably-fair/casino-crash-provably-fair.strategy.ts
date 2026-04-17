@@ -19,7 +19,6 @@ export class CasinoCrashProvablyFairStrategy implements ProvablyFairStrategy {
     const definitionResult = ProvablyFairStrategyDefinition.create({
       id: CasinoCrashProvablyFairStrategy.STRATEGY_ID,
       algorithm: CasinoCrashProvablyFairStrategy.ALGORITHM,
-      version: "1.0.0",
       displayName: "Casino Crash HMAC-SHA256",
       description:
         "Crash-point generation based on a precommitted server seed, an HMAC-SHA256 digest, and an explicit instant-bust house edge rule.",

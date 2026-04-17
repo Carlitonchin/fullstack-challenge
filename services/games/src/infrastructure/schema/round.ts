@@ -41,7 +41,7 @@ export const RoundSchema = defineEntity({
       .fieldName("crash_point")
       .precision(12)
       .scale(4)
-      .check("crash_point > 1"),
+      .check("crash_point >= 1"),
     provablyFairStrategy: () =>
       p
         .manyToOne(ProvablyFairStrategyDefinitionSchema)

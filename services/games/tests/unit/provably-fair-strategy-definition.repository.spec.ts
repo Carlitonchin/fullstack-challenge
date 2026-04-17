@@ -49,7 +49,6 @@ describe("ProvablyFairStrategyDefinitionRepository", () => {
     const repository = new ProvablyFairStrategyDefinitionRepository(em as never);
 
     const result = await repository.persist({
-      snapshotId: "snapshot-2",
       definition: strategy.definition,
       createdAt: new Date("2026-04-18T00:00:00.000Z"),
     });
