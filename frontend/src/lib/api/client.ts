@@ -2,7 +2,6 @@ import {
   ensureValidAccessToken,
   getAuthenticatedPlayer,
   redirectToLogin,
-  refreshAuthSession,
 } from "@/lib/auth"
 import type {
   Bet,

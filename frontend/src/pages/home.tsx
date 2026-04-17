@@ -102,6 +102,7 @@ export default function HomePage() {
           <div className="lg:col-span-4 flex flex-col gap-4 lg:gap-6">
             <BetControls
               round={currentRound}
+              serverTime={snapshotQuery.data?.serverTime}
               myBets={myBetsQuery.data}
               wallet={walletQuery.data}
               isLoadingRound={snapshotQuery.isLoading}

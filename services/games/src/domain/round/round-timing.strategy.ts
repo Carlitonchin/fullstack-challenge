@@ -5,6 +5,17 @@ export const NEXT_ROUND_DELAY_IN_MS = 60_000;
 export const ROUND_DURATION_MIN_IN_MS = 250;
 export const ROUND_DURATION_MAX_IN_MS = 20_000;
 export const ROUND_DURATION_LOG_SCALE = 4_500;
+export const PUBLIC_ROUND_CURVE_KIND = "exponential";
+export const PUBLIC_ROUND_CURVE_VERSION = 1;
+export const PUBLIC_ROUND_CURVE_PRECISION_DIGITS = 4;
+
+export type PublicRoundCurve = {
+  kind: typeof PUBLIC_ROUND_CURVE_KIND;
+  version: typeof PUBLIC_ROUND_CURVE_VERSION;
+  baseMultiplier: number;
+  growthRate: number;
+  precisionDigits: typeof PUBLIC_ROUND_CURVE_PRECISION_DIGITS;
+};
 
 export type RoundTimingSchedule = {
   durationInMs: number;
@@ -82,20 +93,74 @@ export class LogarithmicRoundTimingStrategy implements RoundTimingStrategy {
       return params.crashPoint;
     }
 
+    const curve = buildPublicRoundCurve({
+      crashPoint: params.crashPoint,
+      startedAt: params.startedAt,
+      scheduledCrashAt: params.scheduledCrashAt,
+    });
     const elapsedInMs = clamp(
       params.at.getTime() - params.startedAt.getTime(),
       0,
       durationInMs,
     );
-    const growthRate = Math.log(params.crashPoint) / durationInMs;
-    const multiplier = Math.exp(growthRate * elapsedInMs);
+    const multiplier = multiplierFromPublicRoundCurve({
+      curve,
+      elapsedInMs,
+    });
 
     return clampMultiplier(multiplier, params.crashPoint);
   }
 }
 
+export function buildPublicRoundCurve(params: {
+  crashPoint: number;
+  startedAt: Date;
+  scheduledCrashAt: Date;
+}): PublicRoundCurve {
+  const durationInMs = Math.max(
+    0,
+    params.scheduledCrashAt.getTime() - params.startedAt.getTime(),
+  );
+  const growthRate =
+    params.crashPoint <= 1 || durationInMs === 0
+      ? 0
+      : Math.log(params.crashPoint) / durationInMs;
+
+  return {
+    kind: PUBLIC_ROUND_CURVE_KIND,
+    version: PUBLIC_ROUND_CURVE_VERSION,
+    baseMultiplier: 1,
+    growthRate,
+    precisionDigits: PUBLIC_ROUND_CURVE_PRECISION_DIGITS,
+  };
+}
+
+export function multiplierFromPublicRoundCurve(params: {
+  curve: PublicRoundCurve;
+  elapsedInMs: number;
+}): number {
+  const elapsedInMs = Math.max(0, params.elapsedInMs);
+  const multiplier =
+    params.curve.baseMultiplier *
+    Math.exp(params.curve.growthRate * elapsedInMs);
+
+  return roundMultiplier(multiplier, params.curve.precisionDigits);
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+function roundMultiplier(multiplier: number, precisionDigits: number): number {
+  if (!Number.isFinite(multiplier)) {
+    return 1;
+  }
+
+  if (multiplier < 1) {
+    return 1;
+  }
+
+  return Number(multiplier.toFixed(precisionDigits));
 }
 
 function clampMultiplier(multiplier: number, crashPoint: number): number {

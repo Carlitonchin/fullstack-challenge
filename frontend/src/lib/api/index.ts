@@ -1,5 +1,6 @@
 export {
   type Round,
+  type RoundCurve,
   type Bet,
   type Wallet,
   type Player,

@@ -1,5 +1,8 @@
 import type { BetStatus } from "@games/domain/bet/bet";
 import type { RoundStatus } from "@games/domain/round/round";
+import type { PublicRoundCurve } from "@games/domain/round/round-timing.strategy";
+
+export type GameRoundCurveView = PublicRoundCurve;
 
 export type GameBetView = {
   id: string;
@@ -25,10 +28,11 @@ export type GameRoundView = {
   bettingClosesAt: string;
   startsAt: string;
   startedAt: string | null;
-  scheduledCrashAt: string;
+  scheduledCrashAt: string | null;
   settlesAt: string;
   crashedAt: string | null;
   currentMultiplier: number;
+  curve: GameRoundCurveView;
   crashPoint: number | null;
   serverSeedHash: string;
   serverSeed: string | null;

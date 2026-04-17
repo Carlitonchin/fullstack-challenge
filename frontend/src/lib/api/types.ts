@@ -14,6 +14,14 @@ export type BetStatus =
   | "SETTLED"
   | "REJECTED"
 
+export interface RoundCurve {
+  kind: "exponential"
+  version: 1
+  baseMultiplier: number
+  growthRate: number
+  precisionDigits: number
+}
+
 export interface Round {
   id: string
   status: RoundStatus
@@ -21,10 +29,11 @@ export interface Round {
   bettingClosesAt: string
   startsAt: string
   startedAt: string | null
-  scheduledCrashAt: string
+  scheduledCrashAt: string | null
   settlesAt: string
   crashedAt: string | null
   currentMultiplier: number
+  curve: RoundCurve
   crashPoint: number | null
   serverSeedHash: string
   serverSeed: string | null

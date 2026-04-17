@@ -13,10 +13,13 @@ import { Separator } from "@/components/ui/separator"
 import { placeBet, cashOut, createWallet } from "@/lib/api"
 import type { Bet, Round, Wallet } from "@/lib/api"
 import { formatCents, formatMultiplier, parseDollarsToCents } from "@/lib/format"
+import { useSyncedNow } from "@/hooks/use-synced-now"
+import { resolveDisplayedRoundMultiplier } from "@/lib/round-curve"
 import { toast } from "sonner"
 
 interface BetControlsProps {
   round: Round | undefined
+  serverTime: string | undefined
   myBets: Bet[] | undefined
   wallet: Wallet | null | undefined
   isLoadingRound: boolean
@@ -28,6 +31,7 @@ const QUICK_AMOUNTS = [100, 500, 1000, 2500]
 
 export function BetControls({
   round,
+  serverTime,
   myBets,
   wallet,
   isLoadingRound,
@@ -35,6 +39,7 @@ export function BetControls({
   isLoadingMyBets,
 }: BetControlsProps) {
   const queryClient = useQueryClient()
+  const displayNow = useSyncedNow(serverTime, round?.id)
   const [amount, setAmount] = useState("")
   const [error, setError] = useState<string | null>(null)
 
@@ -146,7 +151,7 @@ export function BetControls({
   const canCashOut =
     round?.status === "IN_PROGRESS" && currentRoundBet?.status === "ACCEPTED"
 
-  const currentMultiplier = round?.currentMultiplier ?? 1
+  const currentMultiplier = resolveDisplayedRoundMultiplier(round, displayNow)
   const lockedBetAmount = currentRoundBet?.amountInCents ?? 0
   const potentialPayout = canCashOut
     ? Math.round(lockedBetAmount * currentMultiplier)

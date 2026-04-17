@@ -9,7 +9,10 @@ import {
   type Round,
   RoundStatus,
 } from "@games/domain/round/round";
-import type { RoundTimingStrategy } from "@games/domain/round/round-timing.strategy";
+import {
+  buildPublicRoundCurve,
+  type RoundTimingStrategy,
+} from "@games/domain/round/round-timing.strategy";
 import { ROUND_TIMING_STRATEGY } from "@games/domain/round/round.tokens";
 import {
   PROVABLY_FAIR_STRATEGY_DEFINITION_REPOSITORY,
@@ -184,10 +187,17 @@ export class GameQueryService {
       bettingClosesAt: round.bettingClosesAt.toISOString(),
       startsAt: round.startsAt.toISOString(),
       startedAt: round.startedAt?.toISOString() ?? null,
-      scheduledCrashAt: round.scheduledCrashAt.toISOString(),
+      scheduledCrashAt: this.shouldExposeScheduledCrashAt(round)
+        ? round.scheduledCrashAt.toISOString()
+        : null,
       settlesAt: round.settlesAt.toISOString(),
       crashedAt: round.crashedAt?.toISOString() ?? null,
       currentMultiplier: this.resolveMultiplier(round, at),
+      curve: buildPublicRoundCurve({
+        crashPoint: round.crashPoint,
+        startedAt: round.startedAt ?? round.startsAt,
+        scheduledCrashAt: round.scheduledCrashAt,
+      }),
       crashPoint: round.isServerSeedRevealed ? round.crashPoint : null,
       serverSeedHash: round.serverSeedHash,
       serverSeed: round.isServerSeedRevealed ? round.serverSeed : null,
@@ -214,6 +224,14 @@ export class GameQueryService {
       scheduledCrashAt: round.scheduledCrashAt,
       at,
     });
+  }
+
+  private shouldExposeScheduledCrashAt(round: Round): boolean {
+    return (
+      round.status === RoundStatus.CRASHED ||
+      round.status === RoundStatus.SETTLED ||
+      round.status === RoundStatus.ERROR
+    );
   }
 
   mapBet(bet: Bet): GameBetView {
