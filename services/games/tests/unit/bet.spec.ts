@@ -1,5 +1,3 @@
-/// <reference types="bun-types" />
-
 import { describe, expect, it } from "bun:test";
 
 import { Bet, BetStatus } from "../../src/domain/bet/bet";

@@ -6,17 +6,36 @@
     "dev": "bun run --watch src/main.ts",
     "start": "bun run src/main.ts",
     "test": "bun test tests/unit",
-    "test:e2e": "bun test tests/e2e"
+    "test:e2e": "bun test tests/e2e",
+    "start:docker": "bun run migration:up && bun run src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "migration:create": "export DATABASE_URL=postgresql://admin:admin@localhost:5432/games && mikro-orm migration:create",
+    "migration:up": "mikro-orm migration:up",
+    "migration:down": "mikro-orm migration:down"
   },
   "dependencies": {
+    "@mikro-orm/core": "^7.0.11",
+    "@mikro-orm/nestjs": "^7.0.1",
+    "@mikro-orm/postgresql": "^7.0.11",
     "@nestjs/common": "^11.1.17",
     "@nestjs/core": "^11.1.17",
     "@nestjs/platform-express": "^11.1.17",
+    "@nestjs/swagger": "^11.3.0",
+    "@types/amqplib": "^0.10.8",
+    "amqplib": "^1.0.3",
+    "jose": "^6.2.2",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
+    "@mikro-orm/cli": "^7.0.11",
+    "@mikro-orm/migrations": "^7.0.11",
     "bun-types": "latest",
+    "tsx": "^4.21.0",
     "typescript": "^5.8.3"
+  },
+  "mikro-orm": {
+    "tsLoader": "tsx"
   }
 }

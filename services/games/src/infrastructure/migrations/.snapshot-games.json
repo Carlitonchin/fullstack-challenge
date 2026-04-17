@@ -1,0 +1,300 @@
+{
+  "name": "public",
+  "namespaces": [
+    "public"
+  ],
+  "tables": [
+    {
+      "name": "provably_fair_strategy_definitions",
+      "schema": "public",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "strategy_id": {
+          "name": "strategy_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "algorithm": {
+          "name": "algorithm",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "version": {
+          "name": "version",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "hash_algorithm": {
+          "name": "hash_algorithm",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "outcome_algorithm": {
+          "name": "outcome_algorithm",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "house_edge_description": {
+          "name": "house_edge_description",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "verification_formula": {
+          "name": "verification_formula",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "verification_steps": {
+          "name": "verification_steps",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "json"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "indexes": [
+        {
+          "keyName": "provably_fair_strategy_definitions_strategy_id_created_at_index",
+          "columnNames": [
+            "strategy_id",
+            "created_at"
+          ],
+          "composite": true,
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "provably_fair_strategy_definitions_strategy_id_version_unique",
+          "columnNames": [
+            "strategy_id",
+            "version"
+          ],
+          "composite": true,
+          "constraint": true,
+          "primary": false,
+          "unique": true
+        },
+        {
+          "keyName": "provably_fair_strategy_definitions_pkey",
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [
+        {
+          "name": "provably_fair_strategy_definitions_strategy_id_check",
+          "expression": "length(trim(strategy_id)) > 0",
+          "definition": "check (length(trim(strategy_id)) > 0)",
+          "columnName": "strategy_id"
+        },
+        {
+          "name": "provably_fair_strategy_definitions_algorithm_check",
+          "expression": "length(trim(algorithm)) > 0",
+          "definition": "check (length(trim(algorithm)) > 0)",
+          "columnName": "algorithm"
+        },
+        {
+          "name": "provably_fair_strategy_definitions_version_check",
+          "expression": "length(trim(version)) > 0",
+          "definition": "check (length(trim(version)) > 0)",
+          "columnName": "version"
+        },
+        {
+          "name": "provably_fair_strategy_definitions_display_name_check",
+          "expression": "length(trim(display_name)) > 0",
+          "definition": "check (length(trim(display_name)) > 0)",
+          "columnName": "display_name"
+        },
+        {
+          "name": "provably_fair_strategy_definitions_description_check",
+          "expression": "length(trim(description)) > 0",
+          "definition": "check (length(trim(description)) > 0)",
+          "columnName": "description"
+        },
+        {
+          "name": "provably_fair_strategy_definitions_hash_algorithm_check",
+          "expression": "length(trim(hash_algorithm)) > 0",
+          "definition": "check (length(trim(hash_algorithm)) > 0)",
+          "columnName": "hash_algorithm"
+        },
+        {
+          "name": "provably_fair_strategy_definitions_outcome_algorithm_check",
+          "expression": "length(trim(outcome_algorithm)) > 0",
+          "definition": "check (length(trim(outcome_algorithm)) > 0)",
+          "columnName": "outcome_algorithm"
+        },
+        {
+          "name": "provably_fair_strategy_definitions_house_edge_description_check",
+          "expression": "length(trim(house_edge_description)) > 0",
+          "definition": "check (length(trim(house_edge_description)) > 0)",
+          "columnName": "house_edge_description"
+        },
+        {
+          "name": "provably_fair_strategy_definitions_verification_formula_check",
+          "expression": "length(trim(verification_formula)) > 0",
+          "definition": "check (length(trim(verification_formula)) > 0)",
+          "columnName": "verification_formula"
+        }
+      ],
+      "foreignKeys": {},
+      "nativeEnums": {}
+    }
+  ],
+  "views": [],
+  "nativeEnums": {}
+}
