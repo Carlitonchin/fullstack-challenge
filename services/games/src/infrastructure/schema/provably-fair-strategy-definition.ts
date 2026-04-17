@@ -1,4 +1,5 @@
 import { defineEntity, type InferEntity, p } from "@mikro-orm/core";
+import { RoundSchema } from "./round";
 
 export type PersistedProvablyFairVerificationStep = {
   order: number;
@@ -130,6 +131,7 @@ export const ProvablyFairStrategyDefinitionSchema = defineEntity({
       .fieldName("created_at")
       .columnType("timestamptz")
       .onCreate(() => new Date()),
+    rounds: () => p.oneToMany(RoundSchema).mappedBy("provablyFairStrategy"),
   },
 });
 
