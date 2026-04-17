@@ -9,9 +9,7 @@ export type PersistedProvablyFairVerificationStep = {
 
 export type CreateProvablyFairStrategyDefinitionSnapshotRecordProps = {
   id: string;
-  strategyId: string;
   algorithm: string;
-  version: string;
   displayName: string;
   description: string;
   hashAlgorithm: string;
@@ -24,9 +22,7 @@ export type CreateProvablyFairStrategyDefinitionSnapshotRecordProps = {
 
 export type ProvablyFairStrategyDefinitionSnapshotRecord = {
   id: string;
-  strategyId: string;
   algorithm: string;
-  version: string;
   displayName: string;
   description: string;
   hashAlgorithm: string;
@@ -56,9 +52,7 @@ export function createProvablyFairStrategyDefinitionSnapshotRecord(
 
   return {
     id: normalizeRequiredString(props.id, "id"),
-    strategyId: normalizeRequiredString(props.strategyId, "strategyId"),
     algorithm: normalizeRequiredString(props.algorithm, "algorithm"),
-    version: normalizeRequiredString(props.version, "version"),
     displayName: normalizeRequiredString(props.displayName, "displayName"),
     description: normalizeRequiredString(props.description, "description"),
     hashAlgorithm: normalizeRequiredString(props.hashAlgorithm, "hashAlgorithm"),
@@ -85,24 +79,13 @@ export const ProvablyFairStrategyDefinitionSchema = defineEntity({
   extends: BaseCreatedAtSchema,
   indexes: [
     {
-      name: "provably_fair_strategy_definitions_strategy_id_created_at_index",
-      properties: ["strategyId", "createdAt"],
-    },
-  ],
-  uniques: [
-    {
-      name: "provably_fair_strategy_definitions_strategy_id_version_unique",
-      properties: ["strategyId", "version"],
+      name: "provably_fair_strategy_definitions_created_at_index",
+      properties: ["createdAt"],
     },
   ],
   properties: {
     id: p.text().primary(),
-    strategyId: p
-      .text()
-      .fieldName("strategy_id")
-      .check("length(trim(strategy_id)) > 0"),
     algorithm: p.text().check("length(trim(algorithm)) > 0"),
-    version: p.text().check("length(trim(version)) > 0"),
     displayName: p
       .text()
       .fieldName("display_name")

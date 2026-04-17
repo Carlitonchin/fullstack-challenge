@@ -16,7 +16,6 @@ const DEFAULT_PROVABLY_FAIR_STRATEGY_ID = "casino-crash-v1";
 export type RoundProvablyFairPublicSnapshot = {
   roundId: string;
   strategyId: string;
-  strategyVersion: string;
   strategyDisplayName: string;
   strategyDescription: string;
   algorithm: string;
@@ -252,8 +251,12 @@ export class Round {
     return this._status === RoundStatus.SETTLED;
   }
 
+  get isActive(): boolean {
+    return !this.isSettled && !this.isError;
+  }
+
   get isTerminal(): boolean {
-    return this.isCrashed || this.isSettled || this.isError;
+    return !this.isActive;
   }
 
   get isServerSeedRevealed(): boolean {
@@ -272,7 +275,6 @@ export class Round {
     return Round.success({
       roundId: this.id,
       strategyId: strategyDefinition.id,
-      strategyVersion: strategyDefinition.version,
       strategyDisplayName: strategyDefinition.displayName,
       strategyDescription: strategyDefinition.description,
       algorithm: strategyDefinition.algorithm,
@@ -464,7 +466,7 @@ export class Round {
       return Round.failure(new RoundErrors.ProvablyFairNonceIsRequiredError());
     }
 
-    if (props.crashPoint <= 1) {
+    if (props.crashPoint < 1) {
       return Round.failure(
         new RoundErrors.CrashPointMustBeGreaterThanOneError(),
       );

@@ -26,6 +26,14 @@ export const RoundSchema = defineEntity({
       properties: ["provablyFairStrategy", "createdAt"],
     },
   ],
+  uniques: [
+    {
+      name: "rounds_single_active_round_unique",
+      expression:
+        `create unique index "rounds_single_active_round_unique" on "rounds" ((true)) ` +
+        `where "status" not in ('SETTLED', 'ERROR')`,
+    },
+  ],
   properties: {
     id: p.text().primary(),
     status: p.enum(() => RoundStatusType).nativeEnumName("round_status_type"),
@@ -34,7 +42,7 @@ export const RoundSchema = defineEntity({
       .fieldName("crash_point")
       .precision(12)
       .scale(4)
-      .check("crash_point > 1"),
+      .check("crash_point >= 1"),
     provablyFairStrategy: () =>
       p
         .manyToOne(ProvablyFairStrategyDefinitionSchema)

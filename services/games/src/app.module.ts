@@ -13,6 +13,7 @@ import { BetRepository } from "@games/infrastructure/repository/bet.repository";
 import { ProvablyFairStrategyDefinitionRepository } from "@games/infrastructure/repository/provably-fair-strategy-definition.repository";
 import { RoundRepository } from "@games/infrastructure/repository/round.repository";
 import { GameOutboxMessageSchema } from "@games/infrastructure/schema/game-outbox-message";
+import { StartRoundUseCase } from "@games/application/use-cases/start-round.use-case";
 import { BET_REPOSITORY } from "@games/port/bet.repository";
 import { ROUND_REPOSITORY } from "@games/port/round.repository";
 import { PROVABLY_FAIR_STRATEGY_DEFINITION_REPOSITORY } from "@games/port/provably-fair-strategy-definition.repository";
@@ -51,6 +52,7 @@ import { GamesController } from "./presentation/controllers/games.controller";
       provide: BET_REPOSITORY,
       useClass: BetRepository,
     },
-  ],
+    StartRoundUseCase,
+  ]
 })
 export class AppModule {}

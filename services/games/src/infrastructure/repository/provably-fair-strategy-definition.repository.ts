@@ -35,33 +35,50 @@ export class ProvablyFairStrategyDefinitionRepository
   }
 
   async persist({
-    snapshotId,
     definition,
     createdAt,
   }: {
-    snapshotId: string;
     definition: ProvablyFairStrategyDefinition;
     createdAt?: Date;
   }): Promise<ProvablyFairResult<ProvablyFairStrategyDefinition>> {
-    const entity = this.em.create(
+    const persistedRecord = createProvablyFairStrategyDefinitionSnapshotRecord({
+      id: definition.id,
+      algorithm: definition.algorithm,
+      displayName: definition.displayName,
+      description: definition.description,
+      hashAlgorithm: definition.hashAlgorithm,
+      outcomeAlgorithm: definition.outcomeAlgorithm,
+      houseEdgeDescription: definition.houseEdgeDescription,
+      verificationFormula: definition.verificationFormula,
+      verificationSteps: definition.verificationSteps,
+      createdAt,
+    });
+    const existingEntity = await this.em.findOne(
       ProvablyFairStrategyDefinitionSchema,
-      createProvablyFairStrategyDefinitionSnapshotRecord({
-        id: snapshotId,
-        strategyId: definition.id,
-        algorithm: definition.algorithm,
-        version: definition.version,
-        displayName: definition.displayName,
-        description: definition.description,
-        hashAlgorithm: definition.hashAlgorithm,
-        outcomeAlgorithm: definition.outcomeAlgorithm,
-        houseEdgeDescription: definition.houseEdgeDescription,
-        verificationFormula: definition.verificationFormula,
-        verificationSteps: definition.verificationSteps,
-        createdAt,
-      }),
+      { id: definition.id },
     );
 
-    this.em.persist(entity);
+    if (existingEntity) {
+      existingEntity.algorithm = persistedRecord.algorithm;
+      existingEntity.displayName = persistedRecord.displayName;
+      existingEntity.description = persistedRecord.description;
+      existingEntity.hashAlgorithm = persistedRecord.hashAlgorithm;
+      existingEntity.outcomeAlgorithm = persistedRecord.outcomeAlgorithm;
+      existingEntity.houseEdgeDescription = persistedRecord.houseEdgeDescription;
+      existingEntity.verificationFormula = persistedRecord.verificationFormula;
+      existingEntity.verificationSteps = persistedRecord.verificationSteps;
+
+      if (createdAt) {
+        existingEntity.createdAt = persistedRecord.createdAt;
+      }
+    } else {
+      const entity = this.em.create(
+        ProvablyFairStrategyDefinitionSchema,
+        persistedRecord,
+      );
+
+      this.em.persist(entity);
+    }
 
     return ProvablyFairStrategyDefinitionRepository.success(definition);
   }
@@ -72,9 +89,8 @@ export class ProvablyFairStrategyDefinitionRepository
     const verificationSteps =
       record.verificationSteps as PersistedProvablyFairVerificationStep[];
     const result = ProvablyFairStrategyDefinition.create({
-      id: record.strategyId,
+      id: record.id,
       algorithm: record.algorithm,
-      version: record.version,
       displayName: record.displayName,
       description: record.description,
       hashAlgorithm: record.hashAlgorithm,

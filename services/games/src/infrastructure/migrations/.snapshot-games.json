@@ -24,40 +24,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "strategy_id": {
-          "name": "strategy_id",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
         "algorithm": {
           "name": "algorithm",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "version": {
-          "name": "version",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -203,26 +171,14 @@
       },
       "indexes": [
         {
-          "keyName": "provably_fair_strategy_definitions_strategy_id_created_at_index",
+          "keyName": "provably_fair_strategy_definitions_created_at_index",
           "columnNames": [
-            "strategy_id",
             "created_at"
           ],
-          "composite": true,
+          "composite": false,
           "constraint": false,
           "primary": false,
           "unique": false
-        },
-        {
-          "keyName": "provably_fair_strategy_definitions_strategy_id_version_unique",
-          "columnNames": [
-            "strategy_id",
-            "version"
-          ],
-          "composite": true,
-          "constraint": true,
-          "primary": false,
-          "unique": true
         },
         {
           "keyName": "provably_fair_strategy_definitions_pkey",
@@ -237,22 +193,10 @@
       ],
       "checks": [
         {
-          "name": "provably_fair_strategy_definitions_strategy_id_check",
-          "expression": "length(trim(strategy_id)) > 0",
-          "definition": "check (length(trim(strategy_id)) > 0)",
-          "columnName": "strategy_id"
-        },
-        {
           "name": "provably_fair_strategy_definitions_algorithm_check",
           "expression": "length(trim(algorithm)) > 0",
           "definition": "check (length(trim(algorithm)) > 0)",
           "columnName": "algorithm"
-        },
-        {
-          "name": "provably_fair_strategy_definitions_version_check",
-          "expression": "length(trim(version)) > 0",
-          "definition": "check (length(trim(version)) > 0)",
-          "columnName": "version"
         },
         {
           "name": "provably_fair_strategy_definitions_display_name_check",
@@ -612,6 +556,15 @@
           "unique": false
         },
         {
+          "keyName": "rounds_single_active_round_unique",
+          "columnNames": [],
+          "composite": false,
+          "constraint": true,
+          "primary": false,
+          "unique": true,
+          "expression": "create unique index \"rounds_single_active_round_unique\" on \"rounds\" ((true)) where \"status\" not in ('SETTLED', 'ERROR')"
+        },
+        {
           "keyName": "rounds_pkey",
           "columnNames": [
             "id"
@@ -631,8 +584,8 @@
         },
         {
           "name": "rounds_crash_point_check",
-          "expression": "crash_point > 1",
-          "definition": "check (crash_point > 1)",
+          "expression": "crash_point >= 1",
+          "definition": "check (crash_point >= 1)",
           "columnName": "crash_point"
         },
         {

@@ -24,14 +24,6 @@ export class ProvablyFairAlgorithmIsRequiredError extends ProvablyFairDomainErro
   }
 }
 
-export class ProvablyFairVersionIsRequiredError extends ProvablyFairDomainError<"PROVABLY_FAIR_VERSION_IS_REQUIRED"> {
-  override readonly name = "PROVABLY_FAIR_VERSION_IS_REQUIRED" as const;
-
-  constructor() {
-    super("Provably fair version is required");
-  }
-}
-
 export class ProvablyFairDisplayNameIsRequiredError extends ProvablyFairDomainError<"PROVABLY_FAIR_DISPLAY_NAME_IS_REQUIRED"> {
   override readonly name = "PROVABLY_FAIR_DISPLAY_NAME_IS_REQUIRED" as const;
 
@@ -96,7 +88,6 @@ export class ProvablyFairVerificationStepsAreRequiredError extends ProvablyFairD
 export type ProvablyFairDomainDefinitionError =
   | ProvablyFairStrategyIdIsRequiredError
   | ProvablyFairAlgorithmIsRequiredError
-  | ProvablyFairVersionIsRequiredError
   | ProvablyFairDisplayNameIsRequiredError
   | ProvablyFairDescriptionIsRequiredError
   | ProvablyFairHashAlgorithmIsRequiredError

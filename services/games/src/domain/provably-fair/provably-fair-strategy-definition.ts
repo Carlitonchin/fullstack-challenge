@@ -8,7 +8,6 @@ export type ProvablyFairVerificationStep = {
 type ProvablyFairStrategyDefinitionProps = {
   id: string;
   algorithm: string;
-  version: string;
   displayName: string;
   description: string;
   hashAlgorithm: string;
@@ -21,7 +20,6 @@ type ProvablyFairStrategyDefinitionProps = {
 export class ProvablyFairStrategyDefinition {
   private readonly _id: string;
   private readonly _algorithm: string;
-  private readonly _version: string;
   private readonly _displayName: string;
   private readonly _description: string;
   private readonly _hashAlgorithm: string;
@@ -33,7 +31,6 @@ export class ProvablyFairStrategyDefinition {
   private constructor(props: ProvablyFairStrategyDefinitionProps) {
     this._id = props.id;
     this._algorithm = props.algorithm;
-    this._version = props.version;
     this._displayName = props.displayName;
     this._description = props.description;
     this._hashAlgorithm = props.hashAlgorithm;
@@ -62,12 +59,6 @@ export class ProvablyFairStrategyDefinition {
     if (!props.algorithm.trim()) {
       return ProvablyFairStrategyDefinition.failure(
         new ProvablyFairErrors.ProvablyFairAlgorithmIsRequiredError(),
-      );
-    }
-
-    if (!props.version.trim()) {
-      return ProvablyFairStrategyDefinition.failure(
-        new ProvablyFairErrors.ProvablyFairVersionIsRequiredError(),
       );
     }
 
@@ -125,7 +116,6 @@ export class ProvablyFairStrategyDefinition {
         ...props,
         id: props.id.trim(),
         algorithm: props.algorithm.trim(),
-        version: props.version.trim(),
         displayName: props.displayName.trim(),
         description: props.description.trim(),
         hashAlgorithm: props.hashAlgorithm.trim(),
@@ -143,10 +133,6 @@ export class ProvablyFairStrategyDefinition {
 
   get algorithm(): string {
     return this._algorithm;
-  }
-
-  get version(): string {
-    return this._version;
   }
 
   get displayName(): string {
