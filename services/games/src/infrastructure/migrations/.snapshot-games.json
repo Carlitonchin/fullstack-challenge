@@ -304,6 +304,18 @@
             "ERROR",
             "SETTLED"
           ]
+        },
+        "bet_status_type": {
+          "name": "bet_status_type",
+          "schema": "public",
+          "items": [
+            "PENDING",
+            "ACCEPTED",
+            "CASHED_OUT",
+            "LOST",
+            "SETTLED",
+            "REJECTED"
+          ]
         }
       }
     },
@@ -669,6 +681,394 @@
             "ERROR",
             "SETTLED"
           ]
+        },
+        "bet_status_type": {
+          "name": "bet_status_type",
+          "schema": "public",
+          "items": [
+            "PENDING",
+            "ACCEPTED",
+            "CASHED_OUT",
+            "LOST",
+            "SETTLED",
+            "REJECTED"
+          ]
+        }
+      }
+    },
+    {
+      "name": "bets",
+      "schema": "public",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "round_id": {
+          "name": "round_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "player_id": {
+          "name": "player_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "amount_in_cents": {
+          "name": "amount_in_cents",
+          "type": "bigint",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "bigint"
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "status": {
+          "name": "status",
+          "type": "bet_status_type",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [
+            "PENDING",
+            "ACCEPTED",
+            "CASHED_OUT",
+            "LOST",
+            "SETTLED",
+            "REJECTED"
+          ],
+          "mappedType": "enum",
+          "nativeEnumName": "bet_status_type"
+        },
+        "placed_at": {
+          "name": "placed_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "accepted_at": {
+          "name": "accepted_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "rejected_at": {
+          "name": "rejected_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "rejection_reason": {
+          "name": "rejection_reason",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "cashed_out_at": {
+          "name": "cashed_out_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "cashout_multiplier": {
+          "name": "cashout_multiplier",
+          "type": "numeric(12,4)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": 12,
+          "scale": 4,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "decimal"
+        },
+        "payout_amount_in_cents": {
+          "name": "payout_amount_in_cents",
+          "type": "bigint",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "bigint"
+        },
+        "lost_at": {
+          "name": "lost_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "settled_at": {
+          "name": "settled_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "indexes": [
+        {
+          "keyName": "bets_round_id_created_at_index",
+          "columnNames": [
+            "round_id",
+            "created_at"
+          ],
+          "composite": true,
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "bets_player_id_created_at_index",
+          "columnNames": [
+            "player_id",
+            "created_at"
+          ],
+          "composite": true,
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "bets_status_created_at_index",
+          "columnNames": [
+            "status",
+            "created_at"
+          ],
+          "composite": true,
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "bets_pkey",
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [
+        {
+          "name": "bets_player_id_check",
+          "expression": "length(trim(player_id)) > 0",
+          "definition": "check (length(trim(player_id)) > 0)",
+          "columnName": "player_id"
+        },
+        {
+          "name": "bets_currency_check",
+          "expression": "length(trim(currency)) > 0",
+          "definition": "check (length(trim(currency)) > 0)",
+          "columnName": "currency"
+        },
+        {
+          "name": "bets_rejection_reason_check",
+          "expression": "rejection_reason is null or length(trim(rejection_reason)) > 0",
+          "definition": "check (rejection_reason is null or length(trim(rejection_reason)) > 0)",
+          "columnName": "rejection_reason"
+        }
+      ],
+      "foreignKeys": {
+        "bets_round_id_foreign": {
+          "constraintName": "bets_round_id_foreign",
+          "columnNames": [
+            "round_id"
+          ],
+          "localTableName": "public.bets",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.rounds",
+          "deleteRule": "restrict",
+          "updateRule": "restrict"
+        }
+      },
+      "nativeEnums": {
+        "round_status_type": {
+          "name": "round_status_type",
+          "schema": "public",
+          "items": [
+            "BETTING_OPEN",
+            "BETTING_CLOSED",
+            "IN_PROGRESS",
+            "CRASHED",
+            "ERROR",
+            "SETTLED"
+          ]
+        },
+        "bet_status_type": {
+          "name": "bet_status_type",
+          "schema": "public",
+          "items": [
+            "PENDING",
+            "ACCEPTED",
+            "CASHED_OUT",
+            "LOST",
+            "SETTLED",
+            "REJECTED"
+          ]
         }
       }
     }
@@ -685,6 +1085,18 @@
         "CRASHED",
         "ERROR",
         "SETTLED"
+      ]
+    },
+    "bet_status_type": {
+      "name": "bet_status_type",
+      "schema": "public",
+      "items": [
+        "PENDING",
+        "ACCEPTED",
+        "CASHED_OUT",
+        "LOST",
+        "SETTLED",
+        "REJECTED"
       ]
     }
   }

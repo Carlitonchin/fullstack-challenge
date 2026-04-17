@@ -1,5 +1,6 @@
 import { defineEntity, type InferEntity, p } from "@mikro-orm/core";
 import { ProvablyFairStrategyDefinitionSchema } from "./provably-fair-strategy-definition";
+import { BetSchema } from "./bet";
 
 export enum RoundStatusType {
   BETTING_OPEN = "BETTING_OPEN",
@@ -84,6 +85,7 @@ export const RoundSchema = defineEntity({
       .fieldName("created_at")
       .columnType("timestamptz")
       .onCreate(() => new Date()),
+    bets: () => p.oneToMany(BetSchema).mappedBy("round"),
   },
 });
 

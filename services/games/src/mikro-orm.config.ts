@@ -5,10 +5,12 @@ import { RoundSchema } from "./infrastructure/schema/round";
 import { Migration20260417131229 } from "./infrastructure/migrations/Migration20260417131229";
 import { Migration20260417133247 } from "./infrastructure/migrations/Migration20260417133247";
 import { Migration20260417134115 } from "./infrastructure/migrations/Migration20260417134115";
+import { BetSchema } from "./infrastructure/schema/bet";
+import { Migration20260417141719 } from "./infrastructure/migrations/Migration20260417141719";
 
 export default defineConfig({
   clientUrl: process.env.DATABASE_URL,
-  entities: [ProvablyFairStrategyDefinitionSchema, RoundSchema],
+  entities: [ProvablyFairStrategyDefinitionSchema, RoundSchema, BetSchema],
   extensions: [Migrator],
   migrations: {
     path: "./src/infrastructure/migrations",
@@ -17,7 +19,8 @@ export default defineConfig({
     migrationsList: [
       Migration20260417131229,
       Migration20260417133247,
-      Migration20260417134115
+      Migration20260417134115,
+      Migration20260417141719
     ],
   },
 });
