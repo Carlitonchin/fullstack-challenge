@@ -4,6 +4,7 @@ import type { Wallet, WalletOperation } from "@wallets/domain/wallet/wallet";
 export const WALLET_REPOSITORY = Symbol("WALLET_REPOSITORY");
 
 export interface IWalletRepository {
+  hasOperation(operationId: string): Promise<boolean>;
   findByPlayerId(playerId: string): Promise<WalletResult<Wallet | undefined>>;
   persist(wallet: Wallet): Promise<WalletResult<Wallet>>;
   persistOperation(params: {

@@ -19,6 +19,8 @@ export interface IBetRepository {
     playerId: string,
     roundId: string,
   ): Promise<BetRepositoryResult<Bet | undefined>>;
+  findByRoundId(roundId: string): Promise<BetRepositoryResult<Bet[]>>;
+  findByPlayerId(playerId: string): Promise<BetRepositoryResult<Bet[]>>;
   findById(id: string): Promise<BetRepositoryResult<Bet | undefined>>;
   persist(bet: Bet): Promise<BetRepositoryResult<Bet>>;
   update(bet: Bet): Promise<BetRepositoryResult<Bet>>;

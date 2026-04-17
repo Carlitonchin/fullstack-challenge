@@ -4,16 +4,16 @@
  */
 
 /**
- * Format cents to a dollar string. E.g. 12500 → "$125.00"
+ * Format cents to a BRL string. E.g. 12500 → "R$ 125,00"
  */
 export function formatCents(cents: number): string {
-  const dollars = cents / 100
-  return new Intl.NumberFormat("en-US", {
+  const value = cents / 100
+  return new Intl.NumberFormat("pt-BR", {
     style: "currency",
-    currency: "USD",
+    currency: "BRL",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(dollars)
+  }).format(value)
 }
 
 /**
@@ -24,18 +24,23 @@ export function formatMultiplier(value: number): string {
 }
 
 /**
- * Parse a dollar input string to cents. E.g. "10.50" → 1050
+ * Parse a BRL input string to cents without floating-point math.
  * Returns null if invalid.
  */
 export function parseDollarsToCents(input: string): number | null {
   const trimmed = input.trim()
   if (!trimmed) return null
 
-  const parsed = parseFloat(trimmed)
-  if (isNaN(parsed) || parsed < 0) return null
+  if (!/^\d+(?:\.\d{1,2})?$/.test(trimmed)) {
+    return null
+  }
 
-  // Round to avoid floating-point drift, then convert to cents
-  return Math.round(parsed * 100)
+  const [unitsPart, centsPart = ""] = trimmed.split(".")
+  const units = Number.parseInt(unitsPart, 10)
+  const cents = Number.parseInt(centsPart.padEnd(2, "0"), 10)
+  const total = units * 100 + cents
+
+  return Number.isSafeInteger(total) ? total : null
 }
 
 /**

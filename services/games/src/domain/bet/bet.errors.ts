@@ -30,6 +30,14 @@ export class PlayerIdIsRequiredError extends DomainError<"PLAYER_ID_IS_REQUIRED"
   }
 }
 
+export class PlayerUsernameIsRequiredError extends DomainError<"PLAYER_USERNAME_IS_REQUIRED"> {
+  override readonly name = "PLAYER_USERNAME_IS_REQUIRED" as const;
+
+  constructor() {
+    super("Player username is required");
+  }
+}
+
 export class AmountInCentsMustBeAnIntegerError extends DomainError<"AMOUNT_IN_CENTS_MUST_BE_AN_INTEGER"> {
   override readonly name = "AMOUNT_IN_CENTS_MUST_BE_AN_INTEGER" as const;
 
@@ -336,6 +344,7 @@ export type BetDomainError =
   | BetIdIsRequiredError
   | RoundIdIsRequiredError
   | PlayerIdIsRequiredError
+  | PlayerUsernameIsRequiredError
   | AmountInCentsMustBeAnIntegerError
   | AmountInCentsMustBeAtLeastMinimumBetError
   | AmountInCentsCannotExceedMaximumBetError

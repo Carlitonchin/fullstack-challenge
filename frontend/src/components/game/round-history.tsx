@@ -5,7 +5,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Skeleton } from "@/components/ui/skeleton"
-import { formatMultiplier, truncateHash } from "@/lib/format"
+import { formatMultiplier, formatTimeAgo, truncateHash } from "@/lib/format"
 import type { RoundHistoryEntry } from "@/lib/api"
 
 interface RoundHistoryProps {
@@ -31,8 +31,8 @@ export function RoundHistory({ rounds, isLoading }: RoundHistoryProps) {
   if (isLoading) {
     return (
       <div className="flex gap-1.5 px-1">
-        {Array.from({ length: 12 }).map((_, i) => (
-          <Skeleton key={i} className="h-7 w-14 rounded-md shrink-0" />
+        {Array.from({ length: 12 }).map((_, index) => (
+          <Skeleton key={index} className="h-7 w-14 shrink-0 rounded-md" />
         ))}
       </div>
     )
@@ -40,7 +40,7 @@ export function RoundHistory({ rounds, isLoading }: RoundHistoryProps) {
 
   if (!rounds || rounds.length === 0) {
     return (
-      <p className="text-xs text-muted-foreground text-center py-2">
+      <p className="py-2 text-center text-xs text-muted-foreground">
         No history yet
       </p>
     )
@@ -60,12 +60,15 @@ export function RoundHistory({ rounds, isLoading }: RoundHistoryProps) {
             </TooltipTrigger>
             <TooltipContent side="bottom" className="text-xs">
               <div className="flex flex-col gap-1">
-                <span>Round #{round.id.split("_")[1]}</span>
+                <span>Round {round.id.slice(0, 8)}</span>
                 <span className="text-muted-foreground">
                   {round.playerCount} players
                 </span>
+                <span className="text-muted-foreground">
+                  {formatTimeAgo(round.crashedAt)}
+                </span>
                 <code className="text-[10px] text-muted-foreground/70">
-                  {truncateHash(round.hashSeed, 4)}
+                  {truncateHash(round.serverSeedHash, 4)}
                 </code>
               </div>
             </TooltipContent>

@@ -7,22 +7,25 @@ import {
   MyBets,
 } from "@/components/game"
 import {
-  useCurrentRound,
-  useCurrentBets,
+  useCurrentGameSnapshot,
   useRoundHistory,
   useWallet,
   usePlayer,
   useMyBets,
+  useGameRealtime,
 } from "@/hooks/use-game-queries"
 import { logoutToLogin } from "@/lib/auth"
 
 export default function HomePage() {
-  const roundQuery = useCurrentRound()
-  const betsQuery = useCurrentBets()
+  const snapshotQuery = useCurrentGameSnapshot()
   const historyQuery = useRoundHistory()
   const walletQuery = useWallet()
   const playerQuery = usePlayer()
   const myBetsQuery = useMyBets()
+  useGameRealtime(playerQuery.data?.id)
+
+  const currentRound = snapshotQuery.data?.round ?? undefined
+  const currentBets = snapshotQuery.data?.bets
 
   return (
     <div className="relative min-h-svh bg-background">
@@ -89,26 +92,29 @@ export default function HomePage() {
           {/* Chart — spans the wide area */}
           <div className="lg:col-span-8">
             <CrashChart
-              round={roundQuery.data}
-              isLoading={roundQuery.isLoading}
+              round={currentRound}
+              serverTime={snapshotQuery.data?.serverTime}
+              isLoading={snapshotQuery.isLoading}
             />
           </div>
 
           {/* Bet Controls — sidebar right */}
           <div className="lg:col-span-4 flex flex-col gap-4 lg:gap-6">
             <BetControls
-              round={roundQuery.data}
+              round={currentRound}
+              myBets={myBetsQuery.data}
               wallet={walletQuery.data}
-              isLoadingRound={roundQuery.isLoading}
+              isLoadingRound={snapshotQuery.isLoading}
               isLoadingWallet={walletQuery.isLoading}
+              isLoadingMyBets={myBetsQuery.isLoading}
             />
           </div>
 
           {/* Bottom row: current bets + my bets */}
           <div className="lg:col-span-8">
             <CurrentBets
-              bets={betsQuery.data}
-              isLoading={betsQuery.isLoading}
+              bets={currentBets}
+              isLoading={snapshotQuery.isLoading}
             />
           </div>
 

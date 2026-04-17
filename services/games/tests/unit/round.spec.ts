@@ -17,7 +17,6 @@ const CREATED_AT = new Date("2026-04-15T12:00:00.000Z");
 const BETTING_WINDOW_IN_SECONDS = 10;
 const CRASH_POINT = 2.37;
 const REHYDRATED_CRASH_POINT = 3.14;
-const STRATEGY_VERSION = "1.0.0";
 const STRATEGY_DISPLAY_NAME = "Casino Crash HMAC-SHA256";
 const STRATEGY_DESCRIPTION = "Versioned public definition for a crash strategy.";
 const STRATEGY_ALGORITHM = "crash-hmac-sha256-v1";
@@ -58,6 +57,9 @@ const BEFORE_START_OFFSET_MS = START_OFFSET_SECONDS * 1000 - 500;
 const EARLY_START_ATTEMPT_OFFSET_SECONDS = 5;
 const SECOND_START_OFFSET_SECONDS = START_OFFSET_SECONDS + 1;
 const FAIL_AFTER_SETTLEMENT_OFFSET_SECONDS = CRASH_OFFSET_SECONDS + 1;
+const START_DELAY_IN_MS = 1_000;
+const ROUND_DURATION_IN_MS = 3_000;
+const CRASH_REVEAL_IN_MS = 1_000;
 
 function atOffsetSeconds(offsetSeconds: number): Date {
   return new Date(CREATED_AT.getTime() + offsetSeconds * 1000);
@@ -88,6 +90,9 @@ function createRound() {
       serverSeed: SERVER_SEED,
       createdAt: CREATED_AT,
       bettingWindowInSeconds: BETTING_WINDOW_IN_SECONDS,
+      startDelayInMs: START_DELAY_IN_MS,
+      roundDurationInMs: ROUND_DURATION_IN_MS,
+      crashRevealInMs: CRASH_REVEAL_IN_MS,
     }),
   );
 }
@@ -97,7 +102,6 @@ function createStrategyDefinition(strategyId: string = STRATEGY_ID) {
     ProvablyFairStrategyDefinition.create({
       id: strategyId,
       algorithm: STRATEGY_ALGORITHM,
-      version: STRATEGY_VERSION,
       displayName: STRATEGY_DISPLAY_NAME,
       description: STRATEGY_DESCRIPTION,
       hashAlgorithm: STRATEGY_HASH_ALGORITHM,
@@ -118,7 +122,7 @@ describe("Round", () => {
     expect(round.isBettingOpen).toBe(true);
     expect(round.bettingClosesAt).toEqual(bettingClosesAt);
     expect(round.canAcceptBets(CREATED_AT)).toBe(true);
-    expect(round.canAcceptBets(bettingClosesAt)).toBe(true);
+    expect(round.canAcceptBets(bettingClosesAt)).toBe(false);
     expect(round.canAcceptBets(atOffsetMs(AFTER_BETTING_CLOSE_OFFSET_MS))).toBe(
       false,
     );
@@ -149,6 +153,9 @@ describe("Round", () => {
       serverSeed: SERVER_SEED,
       createdAt: CREATED_AT,
       bettingWindowInSeconds: 0,
+      startDelayInMs: START_DELAY_IN_MS,
+      roundDurationInMs: ROUND_DURATION_IN_MS,
+      crashRevealInMs: CRASH_REVEAL_IN_MS,
     });
 
     expect(result.success).toBe(false);
@@ -164,14 +171,18 @@ describe("Round", () => {
   it("rehydrates a crashed round when persisted invariants are valid", () => {
     const result = Round.rehydrate({
       id: REHYDRATED_ROUND_ID,
+      version: 1,
       status: RoundStatus.CRASHED,
       crashPoint: REHYDRATED_CRASH_POINT,
       provablyFairStrategyId: STRATEGY_ID,
       nonce: REHYDRATED_ROUND_ID,
       serverSeedHash: SERVER_SEED_HASH,
       serverSeed: SERVER_SEED,
+      startsAt: atOffsetSeconds(START_OFFSET_SECONDS),
       startedAt: atOffsetSeconds(START_OFFSET_SECONDS),
       bettingClosesAt: atOffsetSeconds(BETTING_CLOSE_OFFSET_SECONDS),
+      scheduledCrashAt: atOffsetSeconds(CRASH_OFFSET_SECONDS),
+      settlesAt: atOffsetSeconds(CRASH_OFFSET_SECONDS + 1),
       crashedAt: atOffsetSeconds(CRASH_OFFSET_SECONDS),
       crashMultiplier: REHYDRATED_CRASH_POINT,
       failedAt: null,
@@ -199,7 +210,6 @@ describe("Round", () => {
     expect(snapshot).toEqual({
       roundId: ROUND_ID,
       strategyId: STRATEGY_ID,
-      strategyVersion: STRATEGY_VERSION,
       strategyDisplayName: STRATEGY_DISPLAY_NAME,
       strategyDescription: STRATEGY_DESCRIPTION,
       algorithm: STRATEGY_ALGORITHM,
@@ -209,7 +219,7 @@ describe("Round", () => {
       serverSeedHash: SERVER_SEED_HASH,
       serverSeed: null,
       isServerSeedRevealed: false,
-      crashPoint: CRASH_POINT,
+      crashPoint: null,
       crashMultiplier: null,
       houseEdgeDescription: STRATEGY_HOUSE_EDGE_DESCRIPTION,
       verificationFormula: STRATEGY_VERIFICATION_FORMULA,

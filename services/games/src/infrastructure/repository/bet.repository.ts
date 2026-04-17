@@ -32,6 +32,50 @@ export class BetRepository implements IBetRepository {
     return this.mapRecord(record);
   }
 
+  async findByRoundId(roundId: string): Promise<BetRepositoryResult<Bet[]>> {
+    const records = await this.em.find(
+      BetSchema,
+      { round: roundId },
+      { orderBy: { createdAt: "asc" }, populate: ["round"] },
+    );
+
+    const bets: Bet[] = [];
+
+    for (const record of records) {
+      const mappedBet = this.mapRecord(record);
+
+      if (!mappedBet.success) {
+        return mappedBet;
+      }
+
+      bets.push(mappedBet.data!);
+    }
+
+    return BetRepository.success(bets);
+  }
+
+  async findByPlayerId(playerId: string): Promise<BetRepositoryResult<Bet[]>> {
+    const records = await this.em.find(
+      BetSchema,
+      { playerId },
+      { orderBy: { createdAt: "desc" }, populate: ["round"] },
+    );
+
+    const bets: Bet[] = [];
+
+    for (const record of records) {
+      const mappedBet = this.mapRecord(record);
+
+      if (!mappedBet.success) {
+        return mappedBet;
+      }
+
+      bets.push(mappedBet.data!);
+    }
+
+    return BetRepository.success(bets);
+  }
+
   async findById(id: string): Promise<BetRepositoryResult<Bet | undefined>> {
     const record = await this.em.findOne(BetSchema, { id });
 
@@ -48,6 +92,7 @@ export class BetRepository implements IBetRepository {
       version: bet.version,
       round: this.em.getReference(RoundSchema, bet.roundId),
       playerId: bet.playerId,
+      playerUsername: bet.playerUsername,
       amountInCents: BigInt(bet.amountInCents),
       currency: bet.currency,
       status: this.mapStatusToSchema(bet.status),
@@ -77,6 +122,7 @@ export class BetRepository implements IBetRepository {
         acceptedAt: bet.acceptedAt,
         rejectedAt: bet.rejectedAt,
         rejectionReason: bet.rejectionReason,
+        playerUsername: bet.playerUsername,
         cashedOutAt: bet.cashedOutAt,
         cashoutMultiplier: bet.cashoutMultiplier,
         payoutAmountInCents:
@@ -94,7 +140,7 @@ export class BetRepository implements IBetRepository {
       );
     }
 
-    return BetRepository.success(bet);
+    return BetRepository.success(bet.withVersion(bet.version + 1));
   }
 
   private mapRecord(record: IBet): BetRepositoryResult<Bet> {
@@ -125,6 +171,7 @@ export class BetRepository implements IBetRepository {
       version: record.version,
       roundId: record.round.id,
       playerId: record.playerId,
+      playerUsername: record.playerUsername,
       amount: amountResult.data!,
       status: this.mapStatusToDomain(record.status),
       placedAt: record.placedAt,

@@ -17,6 +17,7 @@ export type BetProps = {
   version: number;
   roundId: string;
   playerId: string;
+  playerUsername: string;
   amount: BetAmount;
   status: BetStatus;
   placedAt: Date;
@@ -35,6 +36,7 @@ export type NewBetProps = {
   id: string;
   roundId: string;
   playerId: string;
+  playerUsername: string;
   amount: BetAmount;
   createdAt: Date;
 };
@@ -49,6 +51,7 @@ export class Bet {
   private _version: number;
   private _roundId: string;
   private _playerId: string;
+  private _playerUsername: string;
   private _amount: BetAmount;
   private _status: BetStatus;
   private _placedAt: Date;
@@ -68,6 +71,7 @@ export class Bet {
     this._version = props.version;
     this._roundId = props.roundId;
     this._playerId = props.playerId;
+    this._playerUsername = props.playerUsername;
     this._amount = props.amount;
     this._status = props.status;
     this._placedAt = props.placedAt;
@@ -89,6 +93,7 @@ export class Bet {
       version: 1,
       roundId: props.roundId,
       playerId: props.playerId,
+      playerUsername: props.playerUsername,
       amount: props.amount,
       status: BetStatus.PENDING,
       placedAt: props.createdAt,
@@ -115,6 +120,7 @@ export class Bet {
       betId: bet.id,
       roundId: bet.roundId,
       playerId: bet.playerId,
+      playerUsername: bet.playerUsername,
       occurredAt: bet.createdAt,
       amountInCents: bet.amountInCents,
       currency: bet.currency,
@@ -135,12 +141,38 @@ export class Bet {
     return this._version;
   }
 
+  withVersion(version: number): Bet {
+    return new Bet({
+      id: this.id,
+      version,
+      roundId: this.roundId,
+      playerId: this.playerId,
+      playerUsername: this.playerUsername,
+      amount: this.amount,
+      status: this.status,
+      placedAt: this.placedAt,
+      acceptedAt: this.acceptedAt,
+      rejectedAt: this.rejectedAt,
+      rejectionReason: this.rejectionReason,
+      cashedOutAt: this.cashedOutAt,
+      cashoutMultiplier: this.cashoutMultiplier,
+      payoutAmount: this.payoutAmount,
+      lostAt: this.lostAt,
+      settledAt: this.settledAt,
+      createdAt: this.createdAt,
+    });
+  }
+
   get roundId(): string {
     return this._roundId;
   }
 
   get playerId(): string {
     return this._playerId;
+  }
+
+  get playerUsername(): string {
+    return this._playerUsername;
   }
 
   get amountInCents(): number {
@@ -255,6 +287,7 @@ export class Bet {
       betId: this.id,
       roundId: this.roundId,
       playerId: this.playerId,
+      playerUsername: this.playerUsername,
       occurredAt: acceptedAt,
     });
 
@@ -287,6 +320,7 @@ export class Bet {
       betId: this.id,
       roundId: this.roundId,
       playerId: this.playerId,
+      playerUsername: this.playerUsername,
       occurredAt: rejectedAt,
       rejectionReason,
     });
@@ -337,6 +371,7 @@ export class Bet {
       betId: this.id,
       roundId: this.roundId,
       playerId: this.playerId,
+      playerUsername: this.playerUsername,
       occurredAt: cashedOutAt,
       cashoutMultiplier: multiplier,
       payoutAmountInCents: this._payoutAmount.amountInCents,
@@ -362,6 +397,7 @@ export class Bet {
       betId: this.id,
       roundId: this.roundId,
       playerId: this.playerId,
+      playerUsername: this.playerUsername,
       occurredAt: lostAt,
     });
 
@@ -387,6 +423,7 @@ export class Bet {
       betId: this.id,
       roundId: this.roundId,
       playerId: this.playerId,
+      playerUsername: this.playerUsername,
       occurredAt: settledAt,
     });
 
@@ -404,6 +441,10 @@ export class Bet {
 
     if (!props.playerId.trim()) {
       return Bet.failure(new BetErrors.PlayerIdIsRequiredError());
+    }
+
+    if (!props.playerUsername.trim()) {
+      return Bet.failure(new BetErrors.PlayerUsernameIsRequiredError());
     }
 
     const amountResult = BetAmount.create({

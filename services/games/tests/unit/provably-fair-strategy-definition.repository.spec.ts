@@ -8,10 +8,8 @@ describe("ProvablyFairStrategyDefinitionRepository", () => {
     const definition = strategy.definition;
     const em = {
       findOne: async () => ({
-        id: "snapshot-1",
-        strategyId: definition.id,
+        id: definition.id,
         algorithm: definition.algorithm,
-        version: definition.version,
         displayName: definition.displayName,
         description: definition.description,
         hashAlgorithm: definition.hashAlgorithm,
@@ -33,7 +31,6 @@ describe("ProvablyFairStrategyDefinitionRepository", () => {
 
     expect(result.data).toBeDefined();
     expect(result.data?.id).toBe(definition.id);
-    expect(result.data?.version).toBe(definition.version);
     expect(result.data?.verificationSteps).toEqual(definition.verificationSteps);
   });
 
@@ -41,6 +38,7 @@ describe("ProvablyFairStrategyDefinitionRepository", () => {
     const strategy = new CasinoCrashProvablyFairStrategy();
     const persistedEntities: unknown[] = [];
     const em = {
+      findOne: async () => null,
       create: (_schema: unknown, entity: unknown) => entity,
       persist: (entity: unknown) => {
         persistedEntities.push(entity);
@@ -62,9 +60,7 @@ describe("ProvablyFairStrategyDefinitionRepository", () => {
     expect(persistedEntities).toHaveLength(1);
     expect(persistedEntities[0]).toEqual(
       expect.objectContaining({
-        id: "snapshot-2",
-        strategyId: strategy.definition.id,
-        version: strategy.definition.version,
+        id: strategy.definition.id,
         createdAt: new Date("2026-04-18T00:00:00.000Z"),
       }),
     );

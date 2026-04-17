@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react"
+import { useMemo, useState, type FormEvent } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,39 +11,47 @@ import {
 } from "@/components/ui/field"
 import { Separator } from "@/components/ui/separator"
 import { placeBet, cashOut, createWallet } from "@/lib/api"
-import type { Round, Wallet } from "@/lib/api"
+import type { Bet, Round, Wallet } from "@/lib/api"
 import { formatCents, formatMultiplier, parseDollarsToCents } from "@/lib/format"
 import { toast } from "sonner"
 
 interface BetControlsProps {
   round: Round | undefined
+  myBets: Bet[] | undefined
   wallet: Wallet | null | undefined
   isLoadingRound: boolean
   isLoadingWallet: boolean
+  isLoadingMyBets: boolean
 }
 
-const QUICK_AMOUNTS = [100, 500, 1000, 2500] // cents
+const QUICK_AMOUNTS = [100, 500, 1000, 2500]
 
 export function BetControls({
   round,
+  myBets,
   wallet,
   isLoadingRound,
   isLoadingWallet,
+  isLoadingMyBets,
 }: BetControlsProps) {
   const queryClient = useQueryClient()
   const [amount, setAmount] = useState("")
   const [error, setError] = useState<string | null>(null)
-  const [hasBet, setHasBet] = useState(false)
+
+  const currentRoundBet = useMemo(
+    () => myBets?.find((bet) => bet.roundId === round?.id),
+    [myBets, round?.id],
+  )
 
   const betMutation = useMutation({
-    mutationFn: (amountCents: number) => placeBet(amountCents),
+    mutationFn: (amountInCents: number) => placeBet(amountInCents),
     onSuccess: () => {
-      setHasBet(true)
       setAmount("")
       setError(null)
-      toast.success("Bet placed!")
+      toast.success("Bet submitted and waiting for wallet confirmation")
+      queryClient.invalidateQueries({ queryKey: ["bets", "mine"] })
+      queryClient.invalidateQueries({ queryKey: ["game", "snapshot"] })
       queryClient.invalidateQueries({ queryKey: ["wallet"] })
-      queryClient.invalidateQueries({ queryKey: ["bets"] })
     },
     onError: (err: Error) => {
       setError(err.message)
@@ -54,10 +62,12 @@ export function BetControls({
   const cashOutMutation = useMutation({
     mutationFn: () => cashOut(),
     onSuccess: (data) => {
-      setHasBet(false)
-      toast.success(`Cashed out at ${formatMultiplier(data.multiplier)} — ${formatCents(data.payoutCents)}`)
+      toast.success(
+        `Cashout locked at ${formatMultiplier(data.multiplier)} for ${formatCents(data.payoutAmountInCents)}`,
+      )
+      queryClient.invalidateQueries({ queryKey: ["bets", "mine"] })
+      queryClient.invalidateQueries({ queryKey: ["game", "snapshot"] })
       queryClient.invalidateQueries({ queryKey: ["wallet"] })
-      queryClient.invalidateQueries({ queryKey: ["bets"] })
     },
     onError: (err: Error) => {
       toast.error(err.message)
@@ -75,23 +85,27 @@ export function BetControls({
     },
   })
 
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault()
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault()
     setError(null)
 
     const cents = parseDollarsToCents(amount)
+
     if (cents === null) {
       setError("Enter a valid amount")
       return
     }
+
     if (cents < 100) {
-      setError("Minimum bet is $1.00")
+      setError("Minimum bet is R$ 1,00")
       return
     }
+
     if (cents > 100_000) {
-      setError("Maximum bet is $1,000.00")
+      setError("Maximum bet is R$ 1.000,00")
       return
     }
+
     if (wallet && cents > wallet.balanceCents) {
       setError("Insufficient balance")
       return
@@ -119,15 +133,24 @@ export function BetControls({
     setError(null)
   }
 
-  const isBetting = round?.status === "BETTING"
-  const isRunning = round?.status === "RUNNING"
   const hasWallet = wallet !== null && wallet !== undefined
-  const canBet = isBetting && !hasBet && !isLoadingRound && !isLoadingWallet && !!wallet
-  const canCashOut = isRunning && hasBet
+  const hasRound = Boolean(round)
+  const canBet =
+    round?.status === "BETTING_OPEN" &&
+    !currentRoundBet &&
+    !isLoadingRound &&
+    !isLoadingWallet &&
+    !isLoadingMyBets &&
+    hasWallet
 
-  // Calculate potential payout when running
-  const currentCents = parseDollarsToCents(amount)
-  const potentialPayout = canCashOut && currentCents ? currentCents * (round?.multiplier ?? 1) : null
+  const canCashOut =
+    round?.status === "IN_PROGRESS" && currentRoundBet?.status === "ACCEPTED"
+
+  const currentMultiplier = round?.currentMultiplier ?? 1
+  const lockedBetAmount = currentRoundBet?.amountInCents ?? 0
+  const potentialPayout = canCashOut
+    ? Math.round(lockedBetAmount * currentMultiplier)
+    : null
 
   if (!isLoadingWallet && !hasWallet) {
     return (
@@ -139,7 +162,7 @@ export function BetControls({
           <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 p-4">
             <p className="text-sm font-medium text-foreground">You don&apos;t have a wallet yet.</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              A wallet is required to participate in the game and place bets.
+              A wallet is required to join the round and place bets.
             </p>
           </div>
 
@@ -149,11 +172,7 @@ export function BetControls({
             onClick={() => createWalletMutation.mutate()}
             disabled={createWalletMutation.isPending}
           >
-            {createWalletMutation.isPending ? (
-              <span className="animate-pulse">Creating wallet…</span>
-            ) : (
-              "Create Wallet"
-            )}
+            {createWalletMutation.isPending ? "Creating wallet…" : "Create Wallet"}
           </Button>
         </CardContent>
       </Card>
@@ -170,7 +189,7 @@ export function BetControls({
           <FieldGroup>
             <Field data-invalid={!!error || undefined}>
               <FieldLabel htmlFor="bet-amount" className="text-xs text-muted-foreground">
-                Amount (USD)
+                Amount (BRL)
               </FieldLabel>
               <Input
                 id="bet-amount"
@@ -179,8 +198,8 @@ export function BetControls({
                 inputMode="decimal"
                 placeholder="0.00"
                 value={amount}
-                onChange={(e) => {
-                  setAmount(e.target.value)
+                onChange={(event) => {
+                  setAmount(event.target.value)
                   setError(null)
                 }}
                 disabled={!canBet}
@@ -190,7 +209,6 @@ export function BetControls({
             </Field>
           </FieldGroup>
 
-          {/* Quick amount buttons */}
           <div className="mt-3 flex flex-wrap gap-1.5">
             {QUICK_AMOUNTS.map((cents) => (
               <Button
@@ -233,27 +251,16 @@ export function BetControls({
 
         <Separator className="my-4" />
 
-        {/* Bet / Cash Out action */}
         {canCashOut ? (
           <Button
             className="w-full text-sm font-semibold"
             size="lg"
-            variant="default"
             disabled={cashOutMutation.isPending}
             onClick={() => cashOutMutation.mutate()}
           >
-            {cashOutMutation.isPending ? (
-              <span className="animate-pulse">Cashing out…</span>
-            ) : (
-              <>
-                Cash Out
-                {potentialPayout !== null && (
-                  <span className="ml-1.5 opacity-80">
-                    {formatCents(Math.round(potentialPayout))}
-                  </span>
-                )}
-              </>
-            )}
+            {cashOutMutation.isPending
+              ? "Locking cashout…"
+              : `Cash Out ${potentialPayout ? formatCents(potentialPayout) : ""}`}
           </Button>
         ) : (
           <Button
@@ -263,19 +270,22 @@ export function BetControls({
             size="lg"
             disabled={!canBet || betMutation.isPending}
           >
-            {betMutation.isPending ? (
-              <span className="animate-pulse">Placing…</span>
-            ) : hasBet ? (
-              "Bet Placed ✓"
-            ) : !isBetting ? (
-              "Wait for next round"
-            ) : (
-              "Place Bet"
-            )}
+            {betMutation.isPending
+              ? "Placing…"
+              : currentRoundBet
+                ? getRoundBetButtonLabel(currentRoundBet.status)
+                : !hasRound
+                  ? "Waiting for round"
+                  : round?.status !== "BETTING_OPEN"
+                    ? "Wait for next round"
+                    : "Place Bet"}
           </Button>
         )}
 
-        {/* Balance display */}
+        {currentRoundBet?.status === "REJECTED" && currentRoundBet.rejectionReason && (
+          <p className="mt-3 text-xs text-destructive">{currentRoundBet.rejectionReason}</p>
+        )}
+
         {wallet && (
           <div className="mt-3 text-center">
             <span className="text-[11px] text-muted-foreground">Balance: </span>
@@ -287,4 +297,23 @@ export function BetControls({
       </CardContent>
     </Card>
   )
+}
+
+function getRoundBetButtonLabel(status: Bet["status"]): string {
+  switch (status) {
+    case "PENDING":
+      return "Bet pending"
+    case "ACCEPTED":
+      return "Bet active"
+    case "CASHED_OUT":
+      return "Cashout requested"
+    case "SETTLED":
+      return "Bet settled"
+    case "LOST":
+      return "Round lost"
+    case "REJECTED":
+      return "Bet rejected"
+    default:
+      return "Bet submitted"
+  }
 }

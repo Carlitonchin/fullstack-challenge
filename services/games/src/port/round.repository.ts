@@ -18,6 +18,7 @@ export class RoundVersionConflictError {
 export interface IRoundRepository {
   findCurrentRound(): Promise<RoundRepositoryResult<Round | undefined>>;
   findById(id: string): Promise<RoundRepositoryResult<Round | undefined>>;
+  findRecentSettledRounds(limit: number): Promise<RoundRepositoryResult<Round[]>>;
   persist(round: Round): Promise<RoundRepositoryResult<Round>>;
   update(round: Round): Promise<RoundRepositoryResult<Round>>;
 }

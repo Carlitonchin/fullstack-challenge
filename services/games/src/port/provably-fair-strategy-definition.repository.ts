@@ -9,6 +9,9 @@ export interface IProvablyFairStrategyDefinitionRepository {
   findCurrentStrategy(): Promise<
     ProvablyFairResult<ProvablyFairStrategyDefinition | undefined>
   >;
+  findById(
+    id: string,
+  ): Promise<ProvablyFairResult<ProvablyFairStrategyDefinition | undefined>>;
   persist(params: {
     definition: ProvablyFairStrategyDefinition;
     createdAt?: Date;

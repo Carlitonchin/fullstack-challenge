@@ -1,84 +1,97 @@
-import { useEffect, useRef, useCallback, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { truncateHash, formatMultiplier } from "@/lib/format"
+import { formatMultiplier, truncateHash } from "@/lib/format"
 import type { Round } from "@/lib/api"
 
 interface CrashChartProps {
   round: Round | undefined
+  serverTime: string | undefined
   isLoading: boolean
 }
 
-/**
- * Renders the crash multiplier curve on a <canvas>.
- * The curve anchors to server state (round.multiplier) and interpolates
- * locally for smooth animation — when real WS is wired in, the server
- * tick will replace the local RAF loop.
- */
-export function CrashChart({ round, isLoading }: CrashChartProps) {
+export function CrashChart({ round, serverTime, isLoading }: CrashChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const animationRef = useRef<number>(0)
+  const [displayNow, setDisplayNow] = useState(() => Date.now())
+  const serverOffsetRef = useRef(0)
 
-  // Local multiplier for smooth client-side interpolation
-  const [displayMultiplier, setDisplayMultiplier] = useState(1.0)
-  const startTimeRef = useRef<number>(Date.now())
-
-  // Countdown state for betting phase
-  const [countdown, setCountdown] = useState<number | null>(null)
-
-  // Track round status for animation
   useEffect(() => {
-    if (round?.status === "RUNNING") {
-      startTimeRef.current = Date.now()
+    if (serverTime) {
+      serverOffsetRef.current = new Date(serverTime).getTime() - Date.now()
     }
-    if (round?.status === "BETTING" || round?.status === "WAITING") {
-      setDisplayMultiplier(1.0)
-    }
-  }, [round?.status])
+  }, [serverTime, round?.id])
 
-  // Countdown ticker for betting phase
   useEffect(() => {
-    if (round?.status !== "BETTING" || !round.bettingEndsAt) {
-      setCountdown(null)
-      return
-    }
+    let frameId = 0
 
     const tick = () => {
-      const remaining = Math.max(
-        0,
-        Math.ceil((new Date(round.bettingEndsAt!).getTime() - Date.now()) / 1000)
-      )
-      setCountdown(remaining)
+      setDisplayNow(Date.now() + serverOffsetRef.current)
+      frameId = window.requestAnimationFrame(tick)
     }
 
-    tick()
-    const interval = setInterval(tick, 100)
-    return () => clearInterval(interval)
-  }, [round?.status, round?.bettingEndsAt])
+    frameId = window.requestAnimationFrame(tick)
+    return () => window.cancelAnimationFrame(frameId)
+  }, [])
 
-  // Simulated multiplier growth for the RUNNING phase
+  const presentState = useMemo(() => {
+    if (!round) {
+      return {
+        multiplier: 1,
+        countdownSeconds: null as number | null,
+      }
+    }
+
+    switch (round.status) {
+      case "BETTING_OPEN":
+        return {
+          multiplier: 1,
+          countdownSeconds: Math.max(
+            0,
+            Math.ceil((new Date(round.bettingClosesAt).getTime() - displayNow) / 1000),
+          ),
+        }
+      case "BETTING_CLOSED":
+        return {
+          multiplier: 1,
+          countdownSeconds: Math.max(
+            0,
+            Math.ceil((new Date(round.startsAt).getTime() - displayNow) / 1000),
+          ),
+        }
+      case "IN_PROGRESS":
+        return {
+          multiplier: calculateMultiplierAt({
+            crashPoint: round.crashPoint ?? 1,
+            startedAt: round.startedAt ?? round.startsAt,
+            scheduledCrashAt: round.scheduledCrashAt,
+            now: displayNow,
+          }),
+          countdownSeconds: null,
+        }
+      case "CRASHED":
+      case "SETTLED":
+        return {
+          multiplier: round.crashPoint ?? round.currentMultiplier,
+          countdownSeconds: null,
+        }
+      case "ERROR":
+      default:
+        return {
+          multiplier: 1,
+          countdownSeconds: null,
+        }
+    }
+  }, [displayNow, round])
+
   useEffect(() => {
-    if (round?.status !== "RUNNING") return
-
-    const tick = () => {
-      const elapsed = (Date.now() - startTimeRef.current) / 1000
-      // Exponential curve: 1.0 * e^(0.06t) — mimics a realistic crash curve
-      const nextMultiplier = Math.exp(0.06 * elapsed)
-      setDisplayMultiplier(nextMultiplier)
-      animationRef.current = requestAnimationFrame(tick)
-    }
-
-    animationRef.current = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(animationRef.current)
-  }, [round?.status])
-
-  // Canvas drawing
-  const draw = useCallback(() => {
     const canvas = canvasRef.current
     const container = containerRef.current
-    if (!canvas || !container) return
+
+    if (!canvas || !container) {
+      return
+    }
 
     const dpr = window.devicePixelRatio || 1
     const rect = container.getBoundingClientRect()
@@ -86,143 +99,94 @@ export function CrashChart({ round, isLoading }: CrashChartProps) {
     canvas.height = rect.height * dpr
 
     const ctx = canvas.getContext("2d")
-    if (!ctx) return
 
+    if (!ctx) {
+      return
+    }
+
+    ctx.resetTransform()
     ctx.scale(dpr, dpr)
-    const w = rect.width
-    const h = rect.height
 
-    // Clear
-    ctx.clearRect(0, 0, w, h)
+    const width = rect.width
+    const height = rect.height
+    ctx.clearRect(0, 0, width, height)
 
-    // Grid lines
     const gridColor = "rgba(255, 255, 255, 0.04)"
     ctx.strokeStyle = gridColor
     ctx.lineWidth = 1
 
-    const gridSpacingX = 60
-    const gridSpacingY = 40
-
-    for (let x = gridSpacingX; x < w; x += gridSpacingX) {
+    for (let x = 60; x < width; x += 60) {
       ctx.beginPath()
       ctx.moveTo(x, 0)
-      ctx.lineTo(x, h)
+      ctx.lineTo(x, height)
       ctx.stroke()
     }
-    for (let y = gridSpacingY; y < h; y += gridSpacingY) {
+
+    for (let y = 40; y < height; y += 40) {
       ctx.beginPath()
       ctx.moveTo(0, y)
-      ctx.lineTo(w, y)
+      ctx.lineTo(width, y)
       ctx.stroke()
     }
 
-    if (round?.status === "RUNNING" || round?.status === "CRASHED") {
-      const multiplier = round.status === "CRASHED"
-        ? (round.crashPoint ?? displayMultiplier)
-        : displayMultiplier
-
-      // Curve parameters
-      const padding = 40
-      const curveW = w - padding * 2
-      const curveH = h - padding * 2
-
-      // Y scale: normalize the multiplier range (1.0 to current)
-      const maxY = Math.max(multiplier, 2.0)
-      const steps = 200
-
-      // Determine color based on multiplier
-      const isCrashed = round.status === "CRASHED"
-      let curveColor: string
-
-      if (isCrashed) {
-        curveColor = "oklch(0.704 0.191 22.216)" // destructive red
-      } else if (multiplier >= 5) {
-        curveColor = "oklch(0.768 0.233 130.85)" // primary green — high
-      } else if (multiplier >= 2) {
-        curveColor = "oklch(0.897 0.196 126.665)" // chart-1 lime
-      } else {
-        curveColor = "oklch(0.768 0.233 130.85)" // primary green
-      }
-
-      // Draw the gradient fill under curve
-      const gradient = ctx.createLinearGradient(0, h, 0, 0)
-      gradient.addColorStop(0, "transparent")
-      gradient.addColorStop(1, isCrashed ? "rgba(239, 68, 68, 0.08)" : "rgba(132, 204, 22, 0.08)")
-
-      ctx.beginPath()
-      ctx.moveTo(padding, h - padding)
-
-      for (let i = 0; i <= steps; i++) {
-        const t = i / steps
-        const x = padding + t * curveW
-        // Exponential curve shape
-        const yVal = Math.exp(Math.log(maxY) * t)
-        const yNorm = (yVal - 1) / (maxY - 1)
-        const y = h - padding - yNorm * curveH
-        ctx.lineTo(x, y)
-      }
-
-      ctx.lineTo(padding + curveW, h - padding)
-      ctx.closePath()
-      ctx.fillStyle = gradient
-      ctx.fill()
-
-      // Draw the curve line
-      ctx.beginPath()
-      ctx.moveTo(padding, h - padding)
-
-      for (let i = 0; i <= steps; i++) {
-        const t = i / steps
-        const x = padding + t * curveW
-        const yVal = Math.exp(Math.log(maxY) * t)
-        const yNorm = (yVal - 1) / (maxY - 1)
-        const y = h - padding - yNorm * curveH
-        ctx.lineTo(x, y)
-      }
-
-      ctx.strokeStyle = curveColor
-      ctx.lineWidth = 2.5
-      ctx.lineCap = "round"
-      ctx.lineJoin = "round"
-      ctx.stroke()
-
-      // Draw endpoint glow
-      const endX = padding + curveW
-      const endYVal = Math.exp(Math.log(maxY))
-      const endYNorm = (endYVal - 1) / (maxY - 1)
-      const endY = h - padding - endYNorm * curveH
-
-      if (!isCrashed) {
-        // Pulsing glow at end point
-        const glowGradient = ctx.createRadialGradient(endX, endY, 0, endX, endY, 12)
-        glowGradient.addColorStop(0, curveColor)
-        glowGradient.addColorStop(1, "transparent")
-        ctx.fillStyle = glowGradient
-        ctx.beginPath()
-        ctx.arc(endX, endY, 12, 0, Math.PI * 2)
-        ctx.fill()
-
-        // Solid dot
-        ctx.fillStyle = curveColor
-        ctx.beginPath()
-        ctx.arc(endX, endY, 4, 0, Math.PI * 2)
-        ctx.fill()
-      }
-    }
-  }, [round?.status, round?.crashPoint, displayMultiplier])
-
-  // Animation loop for canvas
-  useEffect(() => {
-    let rafId: number
-
-    const loop = () => {
-      draw()
-      rafId = requestAnimationFrame(loop)
+    if (!round || round.status === "BETTING_OPEN" || round.status === "BETTING_CLOSED" || round.status === "ERROR") {
+      return
     }
 
-    rafId = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(rafId)
-  }, [draw])
+    const multiplier = presentState.multiplier
+    const maxY = Math.max(multiplier, 2)
+    const padding = 40
+    const curveWidth = width - padding * 2
+    const curveHeight = height - padding * 2
+    const steps = 200
+    const isCrashed = round.status === "CRASHED" || round.status === "SETTLED"
+    const curveColor = isCrashed
+      ? "oklch(0.704 0.191 22.216)"
+      : multiplier >= 5
+        ? "oklch(0.768 0.233 130.85)"
+        : multiplier >= 2
+          ? "oklch(0.897 0.196 126.665)"
+          : "oklch(0.768 0.233 130.85)"
+
+    const gradient = ctx.createLinearGradient(0, height, 0, 0)
+    gradient.addColorStop(0, "transparent")
+    gradient.addColorStop(1, isCrashed ? "rgba(239, 68, 68, 0.08)" : "rgba(132, 204, 22, 0.08)")
+
+    ctx.beginPath()
+    ctx.moveTo(padding, height - padding)
+
+    for (let index = 0; index <= steps; index += 1) {
+      const ratio = index / steps
+      const x = padding + ratio * curveWidth
+      const yValue = Math.exp(Math.log(maxY) * ratio)
+      const normalizedY = (yValue - 1) / (maxY - 1)
+      const y = height - padding - normalizedY * curveHeight
+      ctx.lineTo(x, y)
+    }
+
+    ctx.lineTo(padding + curveWidth, height - padding)
+    ctx.closePath()
+    ctx.fillStyle = gradient
+    ctx.fill()
+
+    ctx.beginPath()
+    ctx.moveTo(padding, height - padding)
+
+    for (let index = 0; index <= steps; index += 1) {
+      const ratio = index / steps
+      const x = padding + ratio * curveWidth
+      const yValue = Math.exp(Math.log(maxY) * ratio)
+      const normalizedY = (yValue - 1) / (maxY - 1)
+      const y = height - padding - normalizedY * curveHeight
+      ctx.lineTo(x, y)
+    }
+
+    ctx.strokeStyle = curveColor
+    ctx.lineWidth = 2.5
+    ctx.lineCap = "round"
+    ctx.lineJoin = "round"
+    ctx.stroke()
+  }, [presentState.multiplier, round])
 
   if (isLoading) {
     return (
@@ -234,24 +198,24 @@ export function CrashChart({ round, isLoading }: CrashChartProps) {
     )
   }
 
-  const isBetting = round?.status === "BETTING"
-  const isRunning = round?.status === "RUNNING"
-  const isCrashed = round?.status === "CRASHED"
-  const isWaiting = round?.status === "WAITING"
+  const isBettingOpen = round?.status === "BETTING_OPEN"
+  const isBettingClosed = round?.status === "BETTING_CLOSED"
+  const isRunning = round?.status === "IN_PROGRESS"
+  const isCrashed = round?.status === "CRASHED" || round?.status === "SETTLED"
+  const isError = round?.status === "ERROR"
 
   return (
     <Card className="relative col-span-full overflow-hidden">
-      {/* Hash seed bar */}
       <div className="flex items-center justify-between border-b border-border/50 px-4 py-2">
         <div className="flex items-center gap-2">
           <div className="size-1.5 rounded-full bg-primary/60 animate-pulse" />
           <span className="text-[10px] tracking-widest uppercase text-muted-foreground">
-            Round #{round?.id.split("_")[1] ?? "—"}
+            Round {round ? round.id.slice(0, 8) : "—"}
           </span>
         </div>
-        {round?.hashSeed && (
+        {round?.serverSeedHash && (
           <code className="text-[10px] text-muted-foreground/60 font-mono">
-            SHA256: {truncateHash(round.hashSeed, 8)}
+            SHA256: {truncateHash(round.serverSeedHash, 8)}
           </code>
         )}
       </div>
@@ -264,15 +228,14 @@ export function CrashChart({ round, isLoading }: CrashChartProps) {
             style={{ width: "100%", height: "100%" }}
           />
 
-          {/* Center overlay — multiplier or status */}
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
-            {isBetting && (
+            {isBettingOpen && (
               <>
                 <Badge variant="outline" className="text-xs animate-pulse">
-                  Accepting bets
+                  Betting open
                 </Badge>
                 <span className="text-5xl font-heading font-bold tracking-tighter text-foreground tabular-nums">
-                  {countdown !== null ? `${countdown}s` : "—"}
+                  {presentState.countdownSeconds ?? "—"}s
                 </span>
                 <span className="text-xs text-muted-foreground uppercase tracking-widest">
                   Place your bet
@@ -280,17 +243,31 @@ export function CrashChart({ round, isLoading }: CrashChartProps) {
               </>
             )}
 
+            {isBettingClosed && (
+              <>
+                <Badge variant="outline" className="text-xs">
+                  Betting closed
+                </Badge>
+                <span className="text-4xl font-heading font-bold tracking-tighter text-foreground tabular-nums">
+                  {presentState.countdownSeconds ?? "—"}s
+                </span>
+                <span className="text-xs text-muted-foreground uppercase tracking-widest">
+                  Round starting
+                </span>
+              </>
+            )}
+
             {isRunning && (
               <span
                 className={`text-6xl font-heading font-bold tracking-tighter tabular-nums transition-colors duration-200 ${
-                  displayMultiplier >= 5
+                  presentState.multiplier >= 5
                     ? "text-primary drop-shadow-[0_0_24px_oklch(0.768_0.233_130.85/0.5)]"
-                    : displayMultiplier >= 2
+                    : presentState.multiplier >= 2
                       ? "text-chart-1"
                       : "text-foreground"
                 }`}
               >
-                {formatMultiplier(displayMultiplier)}
+                {formatMultiplier(presentState.multiplier)}
               </span>
             )}
 
@@ -300,19 +277,53 @@ export function CrashChart({ round, isLoading }: CrashChartProps) {
                   Crashed
                 </Badge>
                 <span className="text-6xl font-heading font-bold tracking-tighter tabular-nums text-destructive">
-                  {formatMultiplier(round?.crashPoint ?? 0)}
+                  {formatMultiplier(round?.crashPoint ?? 1)}
                 </span>
               </>
             )}
 
-            {isWaiting && (
-              <span className="text-lg text-muted-foreground uppercase tracking-widest">
-                Starting…
-              </span>
+            {isError && (
+              <>
+                <Badge variant="destructive" className="text-xs mb-1">
+                  Manual review
+                </Badge>
+                <span className="text-sm uppercase tracking-widest text-muted-foreground">
+                  Game paused
+                </span>
+              </>
             )}
           </div>
         </div>
       </CardContent>
     </Card>
   )
+}
+
+function calculateMultiplierAt(params: {
+  crashPoint: number
+  startedAt: string
+  scheduledCrashAt: string
+  now: number
+}): number {
+  if (params.crashPoint <= 1) {
+    return 1
+  }
+
+  const startedAt = new Date(params.startedAt).getTime()
+  const scheduledCrashAt = new Date(params.scheduledCrashAt).getTime()
+  const durationInMs = Math.max(0, scheduledCrashAt - startedAt)
+
+  if (durationInMs === 0) {
+    return params.crashPoint
+  }
+
+  const elapsedInMs = clamp(params.now - startedAt, 0, durationInMs)
+  const growthRate = Math.log(params.crashPoint) / durationInMs
+  const multiplier = Math.exp(growthRate * elapsedInMs)
+
+  return clamp(Number(multiplier.toFixed(4)), 1, params.crashPoint)
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max)
 }

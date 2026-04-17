@@ -4,18 +4,16 @@ import {
   redirectToLogin,
   refreshAuthSession,
 } from "@/lib/auth"
-import type { Round, Bet, Wallet, Player, RoundHistoryEntry } from "./types"
-import {
-  MOCK_CURRENT_ROUND,
-  MOCK_CURRENT_BETS,
-  MOCK_ROUND_HISTORY,
-  MOCK_WALLET,
-  MOCK_PLAYER,
-  MOCK_MY_BETS,
-} from "./mock-data"
+import type {
+  Bet,
+  CashOutResponse,
+  CurrentGameSnapshot,
+  Player,
+  RoundHistoryEntry,
+  Wallet,
+} from "./types"
 
-const DEFAULT_API_BASE_URL = import.meta.env.DEV ? "" : "http://localhost:8000"
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? DEFAULT_API_BASE_URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"
 
 class ApiError extends Error {
   status: number
@@ -31,6 +29,16 @@ type RequestOptions = {
   method?: "GET" | "POST"
   auth?: boolean
   body?: unknown
+}
+
+type WalletResponse = {
+  id: string
+  playerId: string
+  balanceInCents: string
+}
+
+export function getApiBaseUrl(): string {
+  return API_BASE_URL
 }
 
 async function parseError(response: Response): Promise<ApiError> {
@@ -106,12 +114,6 @@ async function getAccessTokenOrRedirect(): Promise<string> {
   }
 }
 
-type WalletResponse = {
-  id: string
-  playerId: string
-  balanceInCents: string
-}
-
 function mapWallet(response: WalletResponse): Wallet {
   return {
     id: response.id,
@@ -120,16 +122,12 @@ function mapWallet(response: WalletResponse): Wallet {
   }
 }
 
-export async function fetchCurrentRound(): Promise<Round> {
-  return { ...MOCK_CURRENT_ROUND }
-}
-
-export async function fetchCurrentBets(): Promise<Bet[]> {
-  return [...MOCK_CURRENT_BETS]
+export async function fetchCurrentSnapshot(): Promise<CurrentGameSnapshot> {
+  return sendRequest<CurrentGameSnapshot>("/games/rounds/current")
 }
 
 export async function fetchRoundHistory(): Promise<RoundHistoryEntry[]> {
-  return [...MOCK_ROUND_HISTORY]
+  return sendRequest<RoundHistoryEntry[]>("/games/rounds/history")
 }
 
 export async function fetchWallet(): Promise<Wallet | null> {
@@ -171,39 +169,24 @@ export async function fetchPlayer(): Promise<Player> {
 }
 
 export async function fetchMyBets(): Promise<Bet[]> {
-  return [...MOCK_MY_BETS]
+  return sendRequest<Bet[]>("/games/bets/me", {
+    auth: true,
+  })
 }
 
-export async function placeBet(amountCents: number): Promise<Bet> {
-  await getAccessTokenOrRedirect()
-  const player = getAuthenticatedPlayer() ?? MOCK_PLAYER
-
-  if (amountCents < 100) {
-    throw new Error("Minimum bet is $1.00")
-  }
-  if (amountCents > 100_000) {
-    throw new Error("Maximum bet is $1,000.00")
-  }
-  if (amountCents > MOCK_WALLET.balanceCents) {
-    throw new Error("Insufficient balance")
-  }
-
-  return {
-    id: `bet_${Date.now()}`,
-    roundId: MOCK_CURRENT_ROUND.id,
-    playerId: player.id,
-    playerName: player.username,
-    amountCents,
-    status: "ACTIVE",
-    cashoutMultiplier: null,
-    payoutCents: null,
-    createdAt: new Date().toISOString(),
-  }
+export async function placeBet(amountInCents: number): Promise<Bet> {
+  return sendRequest<Bet>("/games/bets", {
+    method: "POST",
+    auth: true,
+    body: {
+      amount: (amountInCents / 100).toFixed(2),
+    },
+  })
 }
 
-export async function cashOut(): Promise<{ multiplier: number; payoutCents: number }> {
-  await getAccessTokenOrRedirect()
-  const multiplier = 2.35
-  const payoutCents = 117_50
-  return { multiplier, payoutCents }
+export async function cashOut(): Promise<CashOutResponse> {
+  return sendRequest<CashOutResponse>("/games/bets/cashout", {
+    method: "POST",
+    auth: true,
+  })
 }

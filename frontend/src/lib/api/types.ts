@@ -1,39 +1,66 @@
-// All money amounts are in integer cents (e.g. 1000 = $10.00)
-// This aligns with the project rule: never use floating-point for money.
-
 export type RoundStatus =
-  | "BETTING"
-  | "RUNNING"
+  | "BETTING_OPEN"
+  | "BETTING_CLOSED"
+  | "IN_PROGRESS"
   | "CRASHED"
-  | "WAITING"
+  | "SETTLED"
+  | "ERROR"
 
 export type BetStatus =
   | "PENDING"
-  | "ACTIVE"
+  | "ACCEPTED"
   | "CASHED_OUT"
   | "LOST"
+  | "SETTLED"
+  | "REJECTED"
 
 export interface Round {
   id: string
   status: RoundStatus
-  crashPoint: number | null // multiplier e.g. 2.35
-  multiplier: number // current multiplier during RUNNING
-  hashSeed: string // pre-round public hash
-  bettingEndsAt: string | null // ISO timestamp
+  bettingOpenedAt: string
+  bettingClosesAt: string
+  startsAt: string
   startedAt: string | null
+  scheduledCrashAt: string
+  settlesAt: string
   crashedAt: string | null
+  currentMultiplier: number
+  crashPoint: number | null
+  serverSeedHash: string
+  serverSeed: string | null
+  isServerSeedRevealed: boolean
+  playerCount: number
 }
 
 export interface Bet {
   id: string
   roundId: string
   playerId: string
-  playerName: string
-  amountCents: number
+  playerUsername: string
+  amountInCents: number
+  currency: "BRL"
   status: BetStatus
+  acceptedAt: string | null
+  rejectedAt: string | null
+  rejectionReason: string | null
   cashoutMultiplier: number | null
-  payoutCents: number | null
+  payoutAmountInCents: number | null
   createdAt: string
+  settledAt: string | null
+}
+
+export interface CurrentGameSnapshot {
+  serverTime: string
+  round: Round | null
+  bets: Bet[]
+}
+
+export interface RoundHistoryEntry {
+  id: string
+  crashPoint: number
+  crashedAt: string
+  serverSeedHash: string
+  playerCount: number
 }
 
 export interface Wallet {
@@ -47,10 +74,7 @@ export interface Player {
   username: string
 }
 
-export interface RoundHistoryEntry {
-  id: string
-  crashPoint: number
-  hashSeed: string
-  createdAt: string
-  playerCount: number
+export interface CashOutResponse {
+  multiplier: number
+  payoutAmountInCents: number
 }

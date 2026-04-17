@@ -21,10 +21,28 @@ export class ProvablyFairStrategyDefinitionRepository
 
   async findCurrentStrategy(
   ): Promise<ProvablyFairResult<ProvablyFairStrategyDefinition | undefined>> {
-    const record = await this.em.findOne(
+    const [record] = await this.em.find(
       ProvablyFairStrategyDefinitionSchema,
       {},
-      { orderBy: { createdAt: "desc" } },
+      {
+        orderBy: { createdAt: "desc" },
+        limit: 1,
+      },
+    );
+
+    if (!record) {
+      return ProvablyFairStrategyDefinitionRepository.success(undefined);
+    }
+
+    return this.mapRecord(record);
+  }
+
+  async findById(
+    id: string,
+  ): Promise<ProvablyFairResult<ProvablyFairStrategyDefinition | undefined>> {
+    const record = await this.em.findOne(
+      ProvablyFairStrategyDefinitionSchema,
+      { id },
     );
 
     if (!record) {

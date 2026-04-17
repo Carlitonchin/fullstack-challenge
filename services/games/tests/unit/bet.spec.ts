@@ -8,6 +8,7 @@ const BET_ID = "bet-1";
 const REHYDRATED_BET_ID = "bet-2";
 const ROUND_ID = "round-1";
 const PLAYER_ID = "player-1";
+const PLAYER_USERNAME = "player_one";
 const REJECTION_REASON = "betting window closed";
 const CREATED_AT = new Date("2026-04-15T12:00:00.000Z");
 const BET_AMOUNT_IN_CENTS = 1_500;
@@ -65,6 +66,7 @@ function createBet() {
       id: BET_ID,
       roundId: ROUND_ID,
       playerId: PLAYER_ID,
+      playerUsername: PLAYER_USERNAME,
       amount: createBetAmount(),
       createdAt: CREATED_AT,
     }),
@@ -90,6 +92,7 @@ describe("Bet", () => {
       betId: BET_ID,
       roundId: ROUND_ID,
       playerId: PLAYER_ID,
+      playerUsername: PLAYER_USERNAME,
       amountInCents: BET_AMOUNT_IN_CENTS,
       currency: "BRL",
     });
@@ -105,6 +108,7 @@ describe("Bet", () => {
       id: REHYDRATED_BET_ID,
       roundId: ROUND_ID,
       playerId: PLAYER_ID,
+      playerUsername: PLAYER_USERNAME,
       amount: createBetAmount(),
       status: BetStatus.SETTLED,
       placedAt: CREATED_AT,
@@ -183,6 +187,7 @@ describe("Bet", () => {
         betId: BET_ID,
         roundId: ROUND_ID,
         playerId: PLAYER_ID,
+        playerUsername: PLAYER_USERNAME,
         occurredAt: rejectedAt,
         rejectionReason: REJECTION_REASON,
       },

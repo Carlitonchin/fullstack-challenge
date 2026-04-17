@@ -29,6 +29,12 @@ export const BetSchema = defineEntity({
       properties: ["status", "createdAt"],
     },
   ],
+  uniques: [
+    {
+      name: "bets_round_id_player_id_unique",
+      properties: ["round", "playerId"],
+    },
+  ],
   properties: {
     id: p.text().primary(),
     round: () =>
@@ -42,6 +48,10 @@ export const BetSchema = defineEntity({
       .text()
       .fieldName("player_id")
       .check("length(trim(player_id)) > 0"),
+    playerUsername: p
+      .text()
+      .fieldName("player_username")
+      .check("length(trim(player_username)) > 0"),
     amountInCents: p.bigint().fieldName("amount_in_cents"),
     currency: p.text().check("length(trim(currency)) > 0"),
     status: p.enum(() => BetStatusType).nativeEnumName("bet_status_type"),

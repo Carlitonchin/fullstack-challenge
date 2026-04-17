@@ -64,9 +64,21 @@ export const RoundSchema = defineEntity({
       .fieldName("started_at")
       .columnType("timestamptz")
       .nullable(),
+    startsAt: p
+      .datetime()
+      .fieldName("starts_at")
+      .columnType("timestamptz"),
     bettingClosesAt: p
       .datetime()
       .fieldName("betting_closes_at")
+      .columnType("timestamptz"),
+    scheduledCrashAt: p
+      .datetime()
+      .fieldName("scheduled_crash_at")
+      .columnType("timestamptz"),
+    settlesAt: p
+      .datetime()
+      .fieldName("settles_at")
       .columnType("timestamptz"),
     crashedAt: p
       .datetime()

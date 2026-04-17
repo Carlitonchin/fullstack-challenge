@@ -5,6 +5,7 @@ type BetEventBase<TType extends string> = {
   betId: string;
   roundId: string;
   playerId: string;
+  playerUsername: string;
   occurredAt: Date;
 };
 

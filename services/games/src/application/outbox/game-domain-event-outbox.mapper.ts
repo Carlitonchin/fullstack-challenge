@@ -1,9 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import {
   BET_DEBIT_REQUESTED,
+  BET_REFUND_REQUESTED,
   CASHOUT_CREDIT_REQUESTED,
   buildBrokerEnvelope,
   type BetDebitRequestedData,
+  type BetRefundRequestedData,
   type CashoutCreditRequestedData,
   type CreateOutboxMessageProps,
 } from "@crash/messaging";
@@ -99,6 +101,29 @@ export class GameDomainEventOutboxMapper {
     });
   }
 
+  mapBetRefundRequested(params: {
+    data: BetRefundRequestedData;
+    outboxId: string;
+    persistedAt: Date;
+    correlationId?: string | null;
+    causationId?: string | null;
+  }): CreateOutboxMessageProps {
+    const { data, outboxId, persistedAt, correlationId, causationId } = params;
+
+    return this.createMessage({
+      outboxId,
+      persistedAt,
+      aggregateType: "bet",
+      aggregateId: data.betId,
+      eventType: BET_REFUND_REQUESTED,
+      idempotencyKey: data.idempotencyKey,
+      occurredAt: persistedAt,
+      correlationId,
+      causationId,
+      data,
+    });
+  }
+
   private createMessage(params: {
     outboxId: string;
     persistedAt: Date;
@@ -148,6 +173,9 @@ export class GameDomainEventOutboxMapper {
           roundId: event.roundId,
           crashPoint: event.crashPoint,
           bettingClosesAt: event.bettingClosesAt.toISOString(),
+          startsAt: event.startsAt.toISOString(),
+          scheduledCrashAt: event.scheduledCrashAt.toISOString(),
+          settlesAt: event.settlesAt.toISOString(),
           provablyFairStrategyId: event.provablyFairStrategyId,
           nonce: event.nonce,
           serverSeedHash: event.serverSeedHash,
@@ -177,6 +205,7 @@ export class GameDomainEventOutboxMapper {
           betId: event.betId,
           roundId: event.roundId,
           playerId: event.playerId,
+          playerUsername: event.playerUsername,
           amountInCents: event.amountInCents,
           currency: event.currency,
         };
@@ -185,6 +214,7 @@ export class GameDomainEventOutboxMapper {
           betId: event.betId,
           roundId: event.roundId,
           playerId: event.playerId,
+          playerUsername: event.playerUsername,
           rejectionReason: event.rejectionReason,
         };
       case "bet.cashed-out":
@@ -192,6 +222,7 @@ export class GameDomainEventOutboxMapper {
           betId: event.betId,
           roundId: event.roundId,
           playerId: event.playerId,
+          playerUsername: event.playerUsername,
           cashoutMultiplier: event.cashoutMultiplier,
           payoutAmountInCents: event.payoutAmountInCents,
           currency: event.currency,
@@ -201,6 +232,7 @@ export class GameDomainEventOutboxMapper {
           betId: event.betId,
           roundId: event.roundId,
           playerId: event.playerId,
+          playerUsername: event.playerUsername,
         };
     }
   }

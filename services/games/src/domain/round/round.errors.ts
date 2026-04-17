@@ -14,6 +14,30 @@ export class BettingWindowMustBeGreaterThanZeroError extends DomainError<"BETTIN
   }
 }
 
+export class StartDelayCannotBeNegativeError extends DomainError<"START_DELAY_CANNOT_BE_NEGATIVE"> {
+  override readonly name = "START_DELAY_CANNOT_BE_NEGATIVE" as const;
+
+  constructor() {
+    super("Start delay cannot be negative");
+  }
+}
+
+export class CrashRevealCannotBeNegativeError extends DomainError<"CRASH_REVEAL_CANNOT_BE_NEGATIVE"> {
+  override readonly name = "CRASH_REVEAL_CANNOT_BE_NEGATIVE" as const;
+
+  constructor() {
+    super("Crash reveal cannot be negative");
+  }
+}
+
+export class RoundDurationCannotBeNegativeError extends DomainError<"ROUND_DURATION_CANNOT_BE_NEGATIVE"> {
+  override readonly name = "ROUND_DURATION_CANNOT_BE_NEGATIVE" as const;
+
+  constructor() {
+    super("Round duration cannot be negative");
+  }
+}
+
 export class RoundCanOnlyCloseBettingFromBettingOpenError extends DomainError<"ROUND_CAN_ONLY_CLOSE_BETTING_FROM_BETTING_OPEN"> {
   override readonly name = "ROUND_CAN_ONLY_CLOSE_BETTING_FROM_BETTING_OPEN" as const;
 
@@ -38,6 +62,14 @@ export class RoundCanOnlyStartFromBettingClosedError extends DomainError<"ROUND_
   }
 }
 
+export class RoundCannotStartBeforeScheduledStartTimeError extends DomainError<"ROUND_CANNOT_START_BEFORE_SCHEDULED_START_TIME"> {
+  override readonly name = "ROUND_CANNOT_START_BEFORE_SCHEDULED_START_TIME" as const;
+
+  constructor() {
+    super("Round cannot start before its scheduled start time");
+  }
+}
+
 export class RoundCannotStartBeforeCreationError extends DomainError<"ROUND_CANNOT_START_BEFORE_CREATION"> {
   override readonly name = "ROUND_CANNOT_START_BEFORE_CREATION" as const;
 
@@ -51,6 +83,15 @@ export class RoundCanOnlyCrashFromInProgressError extends DomainError<"ROUND_CAN
 
   constructor() {
     super("Round can only crash from IN_PROGRESS status");
+  }
+}
+
+export class RoundCannotCrashBeforeScheduledCrashTimeError extends DomainError<"ROUND_CANNOT_CRASH_BEFORE_SCHEDULED_CRASH_TIME"> {
+  override readonly name =
+    "ROUND_CANNOT_CRASH_BEFORE_SCHEDULED_CRASH_TIME" as const;
+
+  constructor() {
+    super("Round cannot crash before its scheduled crash time");
   }
 }
 
@@ -108,6 +149,15 @@ export class RoundCanOnlySettleFromCrashedStatusError extends DomainError<"ROUND
 
   constructor() {
     super("Round can only settle from CRASHED status");
+  }
+}
+
+export class RoundCannotSettleBeforeScheduledSettleTimeError extends DomainError<"ROUND_CANNOT_SETTLE_BEFORE_SCHEDULED_SETTLE_TIME"> {
+  override readonly name =
+    "ROUND_CANNOT_SETTLE_BEFORE_SCHEDULED_SETTLE_TIME" as const;
+
+  constructor() {
+    super("Round cannot settle before its scheduled settle time");
   }
 }
 
@@ -185,11 +235,65 @@ export class BettingCloseTimeMustBeAfterCreationTimeError extends DomainError<"B
   }
 }
 
+export class RoundStartTimeMustBeAfterBettingCloseTimeError extends DomainError<"ROUND_START_TIME_MUST_BE_AFTER_BETTING_CLOSE_TIME"> {
+  override readonly name =
+    "ROUND_START_TIME_MUST_BE_AFTER_BETTING_CLOSE_TIME" as const;
+
+  constructor() {
+    super("Round start time must be after betting close time");
+  }
+}
+
+export class ScheduledCrashTimeMustBeAtOrAfterRoundStartTimeError extends DomainError<"SCHEDULED_CRASH_TIME_MUST_BE_AT_OR_AFTER_ROUND_START_TIME"> {
+  override readonly name =
+    "SCHEDULED_CRASH_TIME_MUST_BE_AT_OR_AFTER_ROUND_START_TIME" as const;
+
+  constructor() {
+    super("Scheduled crash time must be at or after round start time");
+  }
+}
+
+export class RoundSettleTimeMustBeAtOrAfterScheduledCrashTimeError extends DomainError<"ROUND_SETTLE_TIME_MUST_BE_AT_OR_AFTER_SCHEDULED_CRASH_TIME"> {
+  override readonly name =
+    "ROUND_SETTLE_TIME_MUST_BE_AT_OR_AFTER_SCHEDULED_CRASH_TIME" as const;
+
+  constructor() {
+    super("Round settle time must be at or after scheduled crash time");
+  }
+}
+
 export class StartedRoundsMustHaveAStartTimeError extends DomainError<"STARTED_ROUNDS_MUST_HAVE_A_START_TIME"> {
   override readonly name = "STARTED_ROUNDS_MUST_HAVE_A_START_TIME" as const;
 
   constructor() {
     super("Started rounds must have a start time");
+  }
+}
+
+export class RoundsWithStartedStateMustHaveAScheduledStartTimeError extends DomainError<"ROUNDS_WITH_STARTED_STATE_MUST_HAVE_A_SCHEDULED_START_TIME"> {
+  override readonly name =
+    "ROUNDS_WITH_STARTED_STATE_MUST_HAVE_A_SCHEDULED_START_TIME" as const;
+
+  constructor() {
+    super("Rounds with started state must have a scheduled start time");
+  }
+}
+
+export class RoundsWithStartedStateMustHaveAScheduledCrashTimeError extends DomainError<"ROUNDS_WITH_STARTED_STATE_MUST_HAVE_A_SCHEDULED_CRASH_TIME"> {
+  override readonly name =
+    "ROUNDS_WITH_STARTED_STATE_MUST_HAVE_A_SCHEDULED_CRASH_TIME" as const;
+
+  constructor() {
+    super("Rounds with started state must have a scheduled crash time");
+  }
+}
+
+export class RoundsWithStartedStateMustHaveASettleTimeError extends DomainError<"ROUNDS_WITH_STARTED_STATE_MUST_HAVE_A_SETTLE_TIME"> {
+  override readonly name =
+    "ROUNDS_WITH_STARTED_STATE_MUST_HAVE_A_SETTLE_TIME" as const;
+
+  constructor() {
+    super("Rounds with started state must have a settle time");
   }
 }
 
@@ -238,18 +342,24 @@ export class ErroredRoundsMustRequireARefundError extends DomainError<"ERRORED_R
 
 export type RoundDomainError =
   | BettingWindowMustBeGreaterThanZeroError
+  | StartDelayCannotBeNegativeError
+  | CrashRevealCannotBeNegativeError
+  | RoundDurationCannotBeNegativeError
   | RoundCanOnlyCloseBettingFromBettingOpenError
   | BettingCannotCloseBeforeRoundCreationError
   | RoundCanOnlyStartFromBettingClosedError
   | RoundCannotStartBeforeCreationError
+  | RoundCannotStartBeforeScheduledStartTimeError
   | RoundCanOnlyCrashFromInProgressError
   | RoundCannotCrashBeforeItStartsError
+  | RoundCannotCrashBeforeScheduledCrashTimeError
   | RoundCanOnlyFailFromANonTerminalStatusError
   | ErrorReasonIsRequiredError
   | RoundCannotFailBeforeCreationError
   | RoundCannotFailBeforeItStartsError
   | RoundCannotFailBeforeItCrashesError
   | RoundCanOnlySettleFromCrashedStatusError
+  | RoundCannotSettleBeforeScheduledSettleTimeError
   | RoundIdIsRequiredError
   | RoundVersionMustBeGreaterThanZeroError
   | ServerSeedIsRequiredError
@@ -259,7 +369,13 @@ export type RoundDomainError =
   | RoundProvablyFairStrategyDefinitionMismatchError
   | CrashPointMustBeGreaterThanOneError
   | BettingCloseTimeMustBeAfterCreationTimeError
+  | RoundStartTimeMustBeAfterBettingCloseTimeError
+  | ScheduledCrashTimeMustBeAtOrAfterRoundStartTimeError
+  | RoundSettleTimeMustBeAtOrAfterScheduledCrashTimeError
   | StartedRoundsMustHaveAStartTimeError
+  | RoundsWithStartedStateMustHaveAScheduledStartTimeError
+  | RoundsWithStartedStateMustHaveAScheduledCrashTimeError
+  | RoundsWithStartedStateMustHaveASettleTimeError
   | CrashedOrSettledRoundsMustHaveACrashTimeError
   | CrashedOrSettledRoundsMustHaveACrashMultiplierError
   | ErroredRoundsMustHaveAFailureTimeError

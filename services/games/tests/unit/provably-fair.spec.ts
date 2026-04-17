@@ -7,7 +7,6 @@ import { ProvablyFairStrategyDefinition } from "../../src/domain/provably-fair/p
 
 const STRATEGY_ID = "casino-crash-v1";
 const STRATEGY_ALGORITHM = "crash-hmac-sha256-v1";
-const STRATEGY_VERSION = "1.0.0";
 const STRATEGY_DISPLAY_NAME = "Casino Crash HMAC-SHA256";
 const STRATEGY_DESCRIPTION =
   "Versioned public definition for a crash strategy.";
@@ -58,7 +57,6 @@ function createStrategyDefinition() {
   return ProvablyFairStrategyDefinition.create({
     id: STRATEGY_ID,
     algorithm: STRATEGY_ALGORITHM,
-    version: STRATEGY_VERSION,
     displayName: STRATEGY_DISPLAY_NAME,
     description: STRATEGY_DESCRIPTION,
     hashAlgorithm: STRATEGY_HASH_ALGORITHM,
@@ -70,12 +68,11 @@ function createStrategyDefinition() {
 }
 
 describe("ProvablyFairStrategyDefinition", () => {
-  it("creates a valid versioned strategy definition and sorts verification steps", () => {
+  it("creates a valid strategy definition and sorts verification steps", () => {
     const definition = assertSuccess(createStrategyDefinition());
 
     expect(definition.id).toBe(STRATEGY_ID);
     expect(definition.algorithm).toBe(STRATEGY_ALGORITHM);
-    expect(definition.version).toBe(STRATEGY_VERSION);
     expect(definition.displayName).toBe(STRATEGY_DISPLAY_NAME);
     expect(definition.description).toBe(STRATEGY_DESCRIPTION);
     expect(definition.hashAlgorithm).toBe(STRATEGY_HASH_ALGORITHM);
@@ -95,7 +92,6 @@ describe("ProvablyFairStrategyDefinition", () => {
     const result = ProvablyFairStrategyDefinition.create({
       id: STRATEGY_ID,
       algorithm: STRATEGY_ALGORITHM,
-      version: STRATEGY_VERSION,
       displayName: STRATEGY_DISPLAY_NAME,
       description: STRATEGY_DESCRIPTION,
       hashAlgorithm: STRATEGY_HASH_ALGORITHM,
@@ -117,12 +113,11 @@ describe("ProvablyFairStrategyDefinition", () => {
 });
 
 describe("CasinoCrashProvablyFairStrategy", () => {
-  it("publishes a versioned definition", () => {
+  it("publishes a strategy definition", () => {
     const strategy = new CasinoCrashProvablyFairStrategy();
 
     expect(strategy.definition.id).toBe(STRATEGY_ID);
     expect(strategy.definition.algorithm).toBe(STRATEGY_ALGORITHM);
-    expect(strategy.definition.version).toBe(STRATEGY_VERSION);
   });
 
   it("creates a deterministic seed commitment", () => {

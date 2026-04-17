@@ -16,11 +16,12 @@ export class RoundRepository implements IRoundRepository {
   constructor(private readonly em: EntityManager) {}
 
   async findCurrentRound(): Promise<RoundRepositoryResult<Round | undefined>> {
-    const record = await this.em.findOne(
+    const [record] = await this.em.find(
       RoundSchema,
       {},
       {
         orderBy: { createdAt: "desc" },
+        limit: 1,
         populate: ["provablyFairStrategy"],
       },
     );
@@ -46,6 +47,34 @@ export class RoundRepository implements IRoundRepository {
     return this.mapRecord(record);
   }
 
+  async findRecentSettledRounds(
+    limit: number,
+  ): Promise<RoundRepositoryResult<Round[]>> {
+    const records = await this.em.find(
+      RoundSchema,
+      { status: RoundStatusType.SETTLED },
+      {
+        orderBy: { createdAt: "desc" },
+        limit,
+        populate: ["provablyFairStrategy"],
+      },
+    );
+
+    const rounds: Round[] = [];
+
+    for (const record of records) {
+      const mappedRound = this.mapRecord(record);
+
+      if (!mappedRound.success) {
+        return mappedRound;
+      }
+
+      rounds.push(mappedRound.data!);
+    }
+
+    return RoundRepository.success(rounds);
+  }
+
   async persist(round: Round): Promise<RoundRepositoryResult<Round>> {
     const entity = this.em.create(
       RoundSchema,
@@ -61,8 +90,11 @@ export class RoundRepository implements IRoundRepository {
         nonce: round.nonce,
         serverSeedHash: round.serverSeedHash,
         serverSeed: round.serverSeed,
+        startsAt: round.startsAt,
         startedAt: round.startedAt,
         bettingClosesAt: round.bettingClosesAt,
+        scheduledCrashAt: round.scheduledCrashAt,
+        settlesAt: round.settlesAt,
         crashedAt: round.crashedAt,
         crashMultiplier: round.crashMultiplier,
         failedAt: round.failedAt,
@@ -87,8 +119,11 @@ export class RoundRepository implements IRoundRepository {
         nonce: round.nonce,
         serverSeedHash: round.serverSeedHash,
         serverSeed: round.serverSeed,
+        startsAt: round.startsAt,
         startedAt: round.startedAt,
         bettingClosesAt: round.bettingClosesAt,
+        scheduledCrashAt: round.scheduledCrashAt,
+        settlesAt: round.settlesAt,
         crashedAt: round.crashedAt,
         crashMultiplier: round.crashMultiplier,
         failedAt: round.failedAt,
@@ -99,13 +134,13 @@ export class RoundRepository implements IRoundRepository {
       .where({ id: round.id, version: round.version })
       .execute();
 
-    if (result.affectedRows <= 0) {
+    if (this.extractAffectedRows(result) <= 0) {
       return RoundRepository.failure(
         new RoundVersionConflictError(round.id, round.version),
       );
     }
 
-    return RoundRepository.success(round);
+    return RoundRepository.success(round.withVersion(round.version + 1));
   }
 
   private mapRecord(record: IRound): RoundRepositoryResult<Round> {
@@ -118,8 +153,11 @@ export class RoundRepository implements IRoundRepository {
       nonce: record.nonce,
       serverSeedHash: record.serverSeedHash,
       serverSeed: record.serverSeed,
+      startsAt: record.startsAt,
       startedAt: record.startedAt ?? null,
       bettingClosesAt: record.bettingClosesAt,
+      scheduledCrashAt: record.scheduledCrashAt,
+      settlesAt: record.settlesAt,
       crashedAt: record.crashedAt ?? null,
       crashMultiplier:
         record.crashMultiplier === null ? null : Number(record.crashMultiplier),

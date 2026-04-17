@@ -27,6 +27,20 @@ import {
 export class WalletRepository implements IWalletRepository {
   constructor(private readonly em: EntityManager) { }
 
+  async hasOperation(operationId: string): Promise<boolean> {
+    const normalizedOperationId = operationId.trim();
+
+    if (!normalizedOperationId) {
+      return false;
+    }
+
+    const operation = await this.em.findOne(WalletOperationSchema, {
+      operationId: normalizedOperationId,
+    });
+
+    return Boolean(operation);
+  }
+
   async findByPlayerId(playerId: string): Promise<WalletResult<Wallet | undefined>> {
     const walletRecord = await this.em.findOne(
       WalletSchema,
