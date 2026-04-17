@@ -85,12 +85,14 @@ export function ThemeProvider({
   ...props
 }: ThemeProviderProps) {
   const [theme, setThemeState] = React.useState<Theme>(() => {
-    const storedTheme = localStorage.getItem(storageKey)
+    // only dark mode, change this to turn on light mode also
+    /*const storedTheme = localStorage.getItem(storageKey)
     if (isTheme(storedTheme)) {
       return storedTheme
     }
 
-    return defaultTheme
+    return defaultTheme*/
+    return "dark";
   })
 
   const setTheme = React.useCallback(
@@ -104,11 +106,14 @@ export function ThemeProvider({
   const applyTheme = React.useCallback(
     (nextTheme: Theme) => {
       const root = document.documentElement
-      const resolvedTheme =
+      let resolvedTheme =
         nextTheme === "system" ? getSystemTheme() : nextTheme
       const restoreTransitions = disableTransitionOnChange
         ? disableTransitionsTemporarily()
         : null
+
+      // only dark mode, change this to turn on light mode also
+      resolvedTheme = "dark"
 
       root.classList.remove("light", "dark")
       root.classList.add(resolvedTheme)
