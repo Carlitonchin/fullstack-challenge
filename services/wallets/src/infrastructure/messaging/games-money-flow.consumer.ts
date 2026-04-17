@@ -4,6 +4,7 @@ import {
   type ConsumeMessage,
   connect,
 } from "amqplib";
+import { MikroORM, RequestContext } from "@mikro-orm/core";
 import {
   Injectable,
   Logger,
@@ -30,7 +31,10 @@ export class GamesMoneyFlowConsumer implements OnModuleInit, OnModuleDestroy {
   private connection: ChannelModel | null = null;
   private channel: Channel | null = null;
 
-  constructor(private readonly walletMoneyFlowService: WalletMoneyFlowService) {}
+  constructor(
+    private readonly orm: MikroORM,
+    private readonly walletMoneyFlowService: WalletMoneyFlowService,
+  ) {}
 
   async onModuleInit(): Promise<void> {
     const rabbitMqUrl = process.env.RABBITMQ_URL;
@@ -76,27 +80,31 @@ export class GamesMoneyFlowConsumer implements OnModuleInit, OnModuleDestroy {
     }
 
     try {
-      const envelope = JSON.parse(message.content.toString()) as BrokerEnvelope;
+      await RequestContext.create(this.orm.em, async () => {
+        const envelope = JSON.parse(message.content.toString()) as BrokerEnvelope;
 
-      switch (envelope.eventType) {
-        case BET_DEBIT_REQUESTED:
-          await this.walletMoneyFlowService.handleBetDebitRequested(
-            envelope as BrokerEnvelope<BetDebitRequestedData>,
-          );
-          break;
-        case BET_REFUND_REQUESTED:
-          await this.walletMoneyFlowService.handleBetRefundRequested(
-            envelope as BrokerEnvelope<BetRefundRequestedData>,
-          );
-          break;
-        case CASHOUT_CREDIT_REQUESTED:
-          await this.walletMoneyFlowService.handleCashoutCreditRequested(
-            envelope as BrokerEnvelope<CashoutCreditRequestedData>,
-          );
-          break;
-        default:
-          this.logger.warn(`Ignoring unsupported money-flow event ${envelope.eventType}`);
-      }
+        switch (envelope.eventType) {
+          case BET_DEBIT_REQUESTED:
+            await this.walletMoneyFlowService.handleBetDebitRequested(
+              envelope as BrokerEnvelope<BetDebitRequestedData>,
+            );
+            break;
+          case BET_REFUND_REQUESTED:
+            await this.walletMoneyFlowService.handleBetRefundRequested(
+              envelope as BrokerEnvelope<BetRefundRequestedData>,
+            );
+            break;
+          case CASHOUT_CREDIT_REQUESTED:
+            await this.walletMoneyFlowService.handleCashoutCreditRequested(
+              envelope as BrokerEnvelope<CashoutCreditRequestedData>,
+            );
+            break;
+          default:
+            this.logger.warn(
+              `Ignoring unsupported money-flow event ${envelope.eventType}`,
+            );
+        }
+      });
 
       this.channel.ack(message);
     } catch (error) {
