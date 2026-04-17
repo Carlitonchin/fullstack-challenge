@@ -5,6 +5,458 @@
   ],
   "tables": [
     {
+      "name": "game_outbox_messages",
+      "schema": "public",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "aggregate_type": {
+          "name": "aggregate_type",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "aggregate_id": {
+          "name": "aggregate_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "exchange_name": {
+          "name": "exchange_name",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "routing_key": {
+          "name": "routing_key",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "payload": {
+          "name": "payload",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "json"
+        },
+        "headers": {
+          "name": "headers",
+          "type": "jsonb",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "json"
+        },
+        "correlation_id": {
+          "name": "correlation_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "causation_id": {
+          "name": "causation_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "partition_key": {
+          "name": "partition_key",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "integer"
+        },
+        "available_at": {
+          "name": "available_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "locked_at": {
+          "name": "locked_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "locked_by": {
+          "name": "locked_by",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "published_at": {
+          "name": "published_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "last_error": {
+          "name": "last_error",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "status": {
+          "name": "status",
+          "type": "game_outbox_status",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [
+            "PENDING",
+            "PROCESSING",
+            "UNROUTABLE",
+            "PUBLISHED",
+            "FAILED"
+          ],
+          "mappedType": "enum",
+          "nativeEnumName": "game_outbox_status"
+        }
+      },
+      "indexes": [
+        {
+          "keyName": "game_outbox_messages_status_available_at_created_at_index",
+          "columnNames": [
+            "status",
+            "available_at",
+            "created_at"
+          ],
+          "composite": true,
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "game_outbox_messages_aggregate_type_aggregate_id_created_at_index",
+          "columnNames": [
+            "aggregate_type",
+            "aggregate_id",
+            "created_at"
+          ],
+          "composite": true,
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "game_outbox_messages_correlation_id_index",
+          "columnNames": [
+            "correlation_id"
+          ],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "game_outbox_messages_event_type_idempotency_key_unique",
+          "columnNames": [
+            "event_type",
+            "idempotency_key"
+          ],
+          "composite": true,
+          "constraint": true,
+          "primary": false,
+          "unique": true
+        },
+        {
+          "keyName": "game_outbox_messages_pkey",
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [
+        {
+          "name": "game_outbox_messages_attempts_check",
+          "expression": "attempts >= 0",
+          "definition": "check (attempts >= 0)",
+          "columnName": "attempts"
+        }
+      ],
+      "foreignKeys": {},
+      "nativeEnums": {
+        "game_outbox_status": {
+          "name": "game_outbox_status",
+          "schema": "public",
+          "items": [
+            "PENDING",
+            "PROCESSING",
+            "UNROUTABLE",
+            "PUBLISHED",
+            "FAILED"
+          ]
+        },
+        "round_status_type": {
+          "name": "round_status_type",
+          "schema": "public",
+          "items": [
+            "BETTING_OPEN",
+            "BETTING_CLOSED",
+            "IN_PROGRESS",
+            "CRASHED",
+            "ERROR",
+            "SETTLED"
+          ]
+        },
+        "bet_status_type": {
+          "name": "bet_status_type",
+          "schema": "public",
+          "items": [
+            "PENDING",
+            "ACCEPTED",
+            "CASHED_OUT",
+            "LOST",
+            "SETTLED",
+            "REJECTED"
+          ]
+        }
+      }
+    },
+    {
       "name": "provably_fair_strategy_definitions",
       "schema": "public",
       "columns": {
@@ -23,6 +475,22 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "text"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
         },
         "algorithm": {
           "name": "algorithm",
@@ -151,22 +619,6 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "json"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamptz",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 6,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "datetime"
         }
       },
       "indexes": [
@@ -237,6 +689,17 @@
       ],
       "foreignKeys": {},
       "nativeEnums": {
+        "game_outbox_status": {
+          "name": "game_outbox_status",
+          "schema": "public",
+          "items": [
+            "PENDING",
+            "PROCESSING",
+            "UNROUTABLE",
+            "PUBLISHED",
+            "FAILED"
+          ]
+        },
         "round_status_type": {
           "name": "round_status_type",
           "schema": "public",
@@ -282,6 +745,22 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "text"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
         },
         "version": {
           "name": "version",
@@ -514,22 +993,6 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "boolean"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamptz",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 6,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "datetime"
         }
       },
       "indexes": [
@@ -623,6 +1086,17 @@
         }
       },
       "nativeEnums": {
+        "game_outbox_status": {
+          "name": "game_outbox_status",
+          "schema": "public",
+          "items": [
+            "PENDING",
+            "PROCESSING",
+            "UNROUTABLE",
+            "PUBLISHED",
+            "FAILED"
+          ]
+        },
         "round_status_type": {
           "name": "round_status_type",
           "schema": "public",
@@ -668,6 +1142,22 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "text"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
         },
         "version": {
           "name": "version",
@@ -916,22 +1406,6 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "datetime"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamptz",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 6,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "datetime"
         }
       },
       "indexes": [
@@ -981,7 +1455,7 @@
       ],
       "checks": [
         {
-          "name": "bets_version_check",
+          "name": "rounds_version_check",
           "expression": "version > 0",
           "definition": "check (version > 0)",
           "columnName": "version"
@@ -1021,6 +1495,17 @@
         }
       },
       "nativeEnums": {
+        "game_outbox_status": {
+          "name": "game_outbox_status",
+          "schema": "public",
+          "items": [
+            "PENDING",
+            "PROCESSING",
+            "UNROUTABLE",
+            "PUBLISHED",
+            "FAILED"
+          ]
+        },
         "round_status_type": {
           "name": "round_status_type",
           "schema": "public",
@@ -1050,6 +1535,17 @@
   ],
   "views": [],
   "nativeEnums": {
+    "game_outbox_status": {
+      "name": "game_outbox_status",
+      "schema": "public",
+      "items": [
+        "PENDING",
+        "PROCESSING",
+        "UNROUTABLE",
+        "PUBLISHED",
+        "FAILED"
+      ]
+    },
     "round_status_type": {
       "name": "round_status_type",
       "schema": "public",
