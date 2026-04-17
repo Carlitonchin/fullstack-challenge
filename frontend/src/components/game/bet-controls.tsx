@@ -3,7 +3,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   Field,
   FieldError,
@@ -19,12 +18,18 @@ import { toast } from "sonner"
 interface BetControlsProps {
   round: Round | undefined
   wallet: Wallet | undefined
-  isLoading: boolean
+  isLoadingRound: boolean
+  isLoadingWallet: boolean
 }
 
 const QUICK_AMOUNTS = [100, 500, 1000, 2500] // cents
 
-export function BetControls({ round, wallet, isLoading }: BetControlsProps) {
+export function BetControls({
+  round,
+  wallet,
+  isLoadingRound,
+  isLoadingWallet,
+}: BetControlsProps) {
   const queryClient = useQueryClient()
   const [amount, setAmount] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -103,23 +108,9 @@ export function BetControls({ round, wallet, isLoading }: BetControlsProps) {
     setError(null)
   }
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-5 w-24" />
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </CardContent>
-      </Card>
-    )
-  }
-
   const isBetting = round?.status === "BETTING"
   const isRunning = round?.status === "RUNNING"
-  const canBet = isBetting && !hasBet
+  const canBet = isBetting && !hasBet && !isLoadingRound && !isLoadingWallet && !!wallet
   const canCashOut = isRunning && hasBet
 
   // Calculate potential payout when running

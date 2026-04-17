@@ -158,12 +158,6 @@ function readStoredSession(): AuthSession | null {
 }
 
 function persistSession(session: AuthSession | null) {
-  console.log("[auth] persistSession", {
-    hasSession: Boolean(session),
-    user: session?.user,
-    accessTokenExpiresAt: session?.accessTokenExpiresAt,
-    refreshTokenExpiresAt: session?.refreshTokenExpiresAt,
-  })
   cachedSession = session
 
   if (typeof window !== "undefined") {
@@ -254,12 +248,6 @@ async function requestToken(
   previousSession?: AuthSession,
 ): Promise<AuthSession> {
   const config = getAuthConfig()
-  console.log("[auth] requestToken:start", {
-    grantType: params.get("grant_type"),
-    redirectUri: params.get("redirect_uri"),
-    hasCode: Boolean(params.get("code")),
-    hasRefreshToken: Boolean(params.get("refresh_token")),
-  })
   const response = await fetch(config.tokenEndpoint, {
     method: "POST",
     headers: {
@@ -277,11 +265,6 @@ async function requestToken(
       errorPayload = null
     }
 
-    console.log("[auth] requestToken:error", {
-      status: response.status,
-      error: errorPayload?.error,
-      description: errorPayload?.error_description,
-    })
     if (errorPayload?.error === "invalid_grant") {
       clearAllLocalAuthState()
     }
@@ -295,12 +278,6 @@ async function requestToken(
   }
 
   const payload = (await response.json()) as TokenResponse
-  console.log("[auth] requestToken:success", {
-    hasAccessToken: Boolean(payload.access_token),
-    hasRefreshToken: Boolean(payload.refresh_token ?? previousSession?.refreshToken),
-    expiresIn: payload.expires_in,
-    refreshExpiresIn: payload.refresh_expires_in,
-  })
   return createSessionFromTokenResponse(payload, previousSession)
 }
 
@@ -360,9 +337,7 @@ export async function beginLogin(redirectPath = window.location.pathname + windo
 }
 
 export async function handleAuthCallback(callbackUrl = window.location.href): Promise<string> {
-  console.log("[auth] handleAuthCallback:start", { callbackUrl })
   if (callbackExchangePromise && callbackExchangeKey === callbackUrl) {
-    console.log("[auth] handleAuthCallback:reuse-existing-promise")
     return callbackExchangePromise
   }
 
@@ -373,14 +348,6 @@ export async function handleAuthCallback(callbackUrl = window.location.href): Pr
   const storedState = window.localStorage.getItem(AUTH_STATE_STORAGE_KEY)
   const verifier = window.localStorage.getItem(AUTH_VERIFIER_STORAGE_KEY)
   const config = getAuthConfig()
-
-  console.log("[auth] handleAuthCallback:parsed", {
-    hasCode: Boolean(code),
-    state,
-    storedState,
-    hasVerifier: Boolean(verifier),
-    authError,
-  })
 
   if (authError) {
     clearLoginAttemptState()
@@ -403,23 +370,15 @@ export async function handleAuthCallback(callbackUrl = window.location.href): Pr
     }),
   )
     .then((session) => {
-      console.log("[auth] handleAuthCallback:token-exchanged", {
-        user: session.user,
-      })
       clearLoginAttemptState()
       persistSession(session)
       const redirectPath = consumeRedirectPath()
-      console.log("[auth] handleAuthCallback:redirect-ready", { redirectPath })
       return redirectPath
     })
     .catch((error: unknown) => {
-      console.log("[auth] handleAuthCallback:error", {
-        error,
-      })
       throw error
     })
     .finally(() => {
-      console.log("[auth] handleAuthCallback:finally")
       callbackExchangePromise = null
       callbackExchangeKey = null
     })
@@ -467,24 +426,15 @@ export async function refreshAuthSession(): Promise<AuthSession> {
 export async function ensureValidAccessToken(): Promise<string> {
   const session = cachedSession
 
-  console.log("[auth] ensureValidAccessToken:start", {
-    hasSession: Boolean(session),
-    accessTokenExpiresAt: session?.accessTokenExpiresAt,
-    refreshTokenExpiresAt: session?.refreshTokenExpiresAt,
-  })
-
   if (!session) {
     throw new Error("Missing auth session")
   }
 
   if (!isExpired(session.accessTokenExpiresAt)) {
-    console.log("[auth] ensureValidAccessToken:using-current-token")
     return session.accessToken
   }
 
-  console.log("[auth] ensureValidAccessToken:refresh-needed")
   const refreshedSession = await refreshAuthSession()
-  console.log("[auth] ensureValidAccessToken:refresh-complete")
   return refreshedSession.accessToken
 }
 

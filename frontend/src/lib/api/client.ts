@@ -14,14 +14,6 @@ import {
   MOCK_MY_BETS,
 } from "./mock-data"
 
-/**
- * Simulates network latency with a randomized delay.
- */
-function simulateLatency(minMs = 200, maxMs = 600): Promise<void> {
-  const delay = Math.floor(Math.random() * (maxMs - minMs)) + minMs
-  return new Promise((resolve) => setTimeout(resolve, delay))
-}
-
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"
 
 class ApiError extends Error {
@@ -128,17 +120,14 @@ function mapWallet(response: WalletResponse): Wallet {
 }
 
 export async function fetchCurrentRound(): Promise<Round> {
-  await simulateLatency()
   return { ...MOCK_CURRENT_ROUND }
 }
 
 export async function fetchCurrentBets(): Promise<Bet[]> {
-  await simulateLatency()
   return [...MOCK_CURRENT_BETS]
 }
 
 export async function fetchRoundHistory(): Promise<RoundHistoryEntry[]> {
-  await simulateLatency()
   return [...MOCK_ROUND_HISTORY]
 }
 
@@ -164,8 +153,6 @@ export async function fetchWallet(): Promise<Wallet> {
 }
 
 export async function fetchPlayer(): Promise<Player> {
-  await simulateLatency(50, 150)
-
   const player = getAuthenticatedPlayer()
 
   if (!player) {
@@ -179,13 +166,11 @@ export async function fetchPlayer(): Promise<Player> {
 }
 
 export async function fetchMyBets(): Promise<Bet[]> {
-  await simulateLatency()
   return [...MOCK_MY_BETS]
 }
 
 export async function placeBet(amountCents: number): Promise<Bet> {
   await getAccessTokenOrRedirect()
-  await simulateLatency(300, 800)
   const player = getAuthenticatedPlayer() ?? MOCK_PLAYER
 
   if (amountCents < 100) {
@@ -213,7 +198,6 @@ export async function placeBet(amountCents: number): Promise<Bet> {
 
 export async function cashOut(): Promise<{ multiplier: number; payoutCents: number }> {
   await getAccessTokenOrRedirect()
-  await simulateLatency(200, 500)
   const multiplier = 2.35
   const payoutCents = 117_50
   return { multiplier, payoutCents }

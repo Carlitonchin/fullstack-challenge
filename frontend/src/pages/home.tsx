@@ -66,7 +66,8 @@ export default function HomePage() {
           <PlayerInfo
             player={playerQuery.data}
             wallet={walletQuery.data}
-            isLoading={playerQuery.isLoading || walletQuery.isLoading}
+            isLoadingPlayer={playerQuery.isLoading}
+            isLoadingWallet={walletQuery.isLoading}
             onLogout={logoutToLogin}
           />
         </div>
@@ -98,7 +99,8 @@ export default function HomePage() {
             <BetControls
               round={roundQuery.data}
               wallet={walletQuery.data}
-              isLoading={roundQuery.isLoading || walletQuery.isLoading}
+              isLoadingRound={roundQuery.isLoading}
+              isLoadingWallet={walletQuery.isLoading}
             />
           </div>
 

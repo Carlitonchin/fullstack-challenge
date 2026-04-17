@@ -29,11 +29,7 @@ function ProtectedHomeRoute() {
     let cancelled = false
 
     async function bootstrapSession() {
-      console.log("[protected-home] bootstrap:start", {
-        hasSession: Boolean(getAuthSession()),
-      })
       if (!getAuthSession()) {
-        console.log("[protected-home] bootstrap:no-session")
         redirectToLogin()
         return
       }
@@ -42,12 +38,10 @@ function ProtectedHomeRoute() {
         await ensureValidAccessToken()
 
         if (!cancelled) {
-          console.log("[protected-home] bootstrap:ready")
           setStatus("ready")
         }
       } catch {
         if (!cancelled) {
-          console.log("[protected-home] bootstrap:error")
           redirectToLogin()
         }
       }

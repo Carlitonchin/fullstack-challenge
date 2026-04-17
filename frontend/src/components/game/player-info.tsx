@@ -13,17 +13,19 @@ import {
 interface PlayerInfoProps {
   player: Player | undefined
   wallet: Wallet | undefined
-  isLoading: boolean
+  isLoadingPlayer: boolean
+  isLoadingWallet: boolean
   onLogout: () => void
 }
 
 export function PlayerInfo({
   player,
   wallet,
-  isLoading,
+  isLoadingPlayer,
+  isLoadingWallet,
   onLogout,
 }: PlayerInfoProps) {
-  if (isLoading) {
+  if (isLoadingPlayer) {
     return (
       <div className="flex items-center gap-3">
         <Skeleton className="size-8 rounded-full" />
@@ -49,9 +51,13 @@ export function PlayerInfo({
         </span>
         <div className="flex items-center gap-1 mt-0.5">
           <WalletIcon className="size-3 text-muted-foreground" />
-          <span className="text-xs font-semibold text-primary tabular-nums">
-            {wallet ? formatCents(wallet.balanceCents) : "—"}
-          </span>
+          {isLoadingWallet ? (
+            <Skeleton className="h-3 w-16" />
+          ) : (
+            <span className="text-xs font-semibold text-primary tabular-nums">
+              {wallet ? formatCents(wallet.balanceCents) : "—"}
+            </span>
+          )}
         </div>
       </div>
 
