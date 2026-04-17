@@ -14,7 +14,8 @@ import {
   MOCK_MY_BETS,
 } from "./mock-data"
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"
+const DEFAULT_API_BASE_URL = import.meta.env.DEV ? "" : "http://localhost:8000"
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? DEFAULT_API_BASE_URL
 
 class ApiError extends Error {
   status: number
@@ -131,7 +132,7 @@ export async function fetchRoundHistory(): Promise<RoundHistoryEntry[]> {
   return [...MOCK_ROUND_HISTORY]
 }
 
-export async function fetchWallet(): Promise<Wallet> {
+export async function fetchWallet(): Promise<Wallet | null> {
   try {
     const wallet = await sendRequest<WalletResponse>("/wallets/me", {
       auth: true,
@@ -140,16 +141,20 @@ export async function fetchWallet(): Promise<Wallet> {
     return mapWallet(wallet)
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
-      const wallet = await sendRequest<WalletResponse>("/wallets", {
-        method: "POST",
-        auth: true,
-      })
-
-      return mapWallet(wallet)
+      return null
     }
 
     throw error
   }
+}
+
+export async function createWallet(): Promise<Wallet> {
+  const wallet = await sendRequest<WalletResponse>("/wallets", {
+    method: "POST",
+    auth: true,
+  })
+
+  return mapWallet(wallet)
 }
 
 export async function fetchPlayer(): Promise<Player> {

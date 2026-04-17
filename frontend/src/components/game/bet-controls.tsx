@@ -10,14 +10,14 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Separator } from "@/components/ui/separator"
-import { placeBet, cashOut } from "@/lib/api"
+import { placeBet, cashOut, createWallet } from "@/lib/api"
 import type { Round, Wallet } from "@/lib/api"
 import { formatCents, formatMultiplier, parseDollarsToCents } from "@/lib/format"
 import { toast } from "sonner"
 
 interface BetControlsProps {
   round: Round | undefined
-  wallet: Wallet | undefined
+  wallet: Wallet | null | undefined
   isLoadingRound: boolean
   isLoadingWallet: boolean
 }
@@ -58,6 +58,17 @@ export function BetControls({
       toast.success(`Cashed out at ${formatMultiplier(data.multiplier)} — ${formatCents(data.payoutCents)}`)
       queryClient.invalidateQueries({ queryKey: ["wallet"] })
       queryClient.invalidateQueries({ queryKey: ["bets"] })
+    },
+    onError: (err: Error) => {
+      toast.error(err.message)
+    },
+  })
+
+  const createWalletMutation = useMutation({
+    mutationFn: () => createWallet(),
+    onSuccess: () => {
+      toast.success("Wallet created")
+      queryClient.invalidateQueries({ queryKey: ["wallet"] })
     },
     onError: (err: Error) => {
       toast.error(err.message)
@@ -110,12 +121,44 @@ export function BetControls({
 
   const isBetting = round?.status === "BETTING"
   const isRunning = round?.status === "RUNNING"
+  const hasWallet = wallet !== null && wallet !== undefined
   const canBet = isBetting && !hasBet && !isLoadingRound && !isLoadingWallet && !!wallet
   const canCashOut = isRunning && hasBet
 
   // Calculate potential payout when running
   const currentCents = parseDollarsToCents(amount)
   const potentialPayout = canCashOut && currentCents ? currentCents * (round?.multiplier ?? 1) : null
+
+  if (!isLoadingWallet && !hasWallet) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">Place Bet</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 p-4">
+            <p className="text-sm font-medium text-foreground">You don&apos;t have a wallet yet.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              A wallet is required to participate in the game and place bets.
+            </p>
+          </div>
+
+          <Button
+            className="w-full text-sm font-semibold"
+            size="lg"
+            onClick={() => createWalletMutation.mutate()}
+            disabled={createWalletMutation.isPending}
+          >
+            {createWalletMutation.isPending ? (
+              <span className="animate-pulse">Creating wallet…</span>
+            ) : (
+              "Create Wallet"
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card>

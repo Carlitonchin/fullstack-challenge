@@ -4,6 +4,7 @@ export {
   fetchCurrentBets,
   fetchRoundHistory,
   fetchWallet,
+  createWallet,
   fetchPlayer,
   fetchMyBets,
   placeBet,

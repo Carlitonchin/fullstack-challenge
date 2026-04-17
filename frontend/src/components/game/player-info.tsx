@@ -12,7 +12,7 @@ import {
 
 interface PlayerInfoProps {
   player: Player | undefined
-  wallet: Wallet | undefined
+  wallet: Wallet | null | undefined
   isLoadingPlayer: boolean
   isLoadingWallet: boolean
   onLogout: () => void
