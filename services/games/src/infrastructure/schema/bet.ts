@@ -29,6 +29,7 @@ export const BetSchema = defineEntity({
   ],
   properties: {
     id: p.text().primary(),
+    version: p.integer().fieldName("version").default(1).check("version > 0").version(),
     round: () =>
       p
         .manyToOne(RoundSchema)

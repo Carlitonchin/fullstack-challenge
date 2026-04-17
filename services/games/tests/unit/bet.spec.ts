@@ -21,6 +21,7 @@ const LOSS_OFFSET_SECONDS = 4;
 const SETTLE_OFFSET_SECONDS = 5;
 const PRE_CREATION_OFFSET_MS = -1;
 const BEFORE_ACCEPT_OFFSET_MS = ACCEPT_OFFSET_SECONDS * 1000 - 1;
+const VERSION = 1;
 
 function atOffsetSeconds(offsetSeconds: number): Date {
   return new Date(CREATED_AT.getTime() + offsetSeconds * 1000);
@@ -116,6 +117,7 @@ describe("Bet", () => {
       lostAt: null,
       settledAt,
       createdAt: CREATED_AT,
+      version: VERSION
     });
 
     const bet = assertSuccess(result);

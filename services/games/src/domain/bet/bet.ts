@@ -14,6 +14,7 @@ export enum BetStatus {
 
 export type BetProps = {
   id: string;
+  version: number;
   roundId: string;
   playerId: string;
   amount: BetAmount;
@@ -45,6 +46,7 @@ type CashOutProps = {
 
 export class Bet {
   private _id: string;
+  private _version: number;
   private _roundId: string;
   private _playerId: string;
   private _amount: BetAmount;
@@ -63,6 +65,7 @@ export class Bet {
 
   private constructor(props: BetProps) {
     this._id = props.id;
+    this._version = props.version;
     this._roundId = props.roundId;
     this._playerId = props.playerId;
     this._amount = props.amount;
@@ -83,6 +86,7 @@ export class Bet {
   static new(props: NewBetProps): BetErrors.BetResult<Bet> {
     const betProps: BetProps = {
       id: props.id,
+      version: 1,
       roundId: props.roundId,
       playerId: props.playerId,
       amount: props.amount,
@@ -125,6 +129,10 @@ export class Bet {
 
   get id(): string {
     return this._id;
+  }
+
+  get version(): number {
+    return this._version;
   }
 
   get roundId(): string {
