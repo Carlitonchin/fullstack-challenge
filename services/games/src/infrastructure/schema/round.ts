@@ -25,6 +25,7 @@ export const RoundSchema = defineEntity({
   ],
   properties: {
     id: p.text().primary(),
+    version: p.integer().fieldName("version").default(1).check("version > 0").version(),
     status: p.enum(() => RoundStatusType).nativeEnumName("round_status_type"),
     crashPoint: p
       .decimal("number")

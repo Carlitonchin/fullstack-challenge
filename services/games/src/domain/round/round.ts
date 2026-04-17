@@ -35,6 +35,7 @@ export type RoundProvablyFairPublicSnapshot = {
 
 type RoundProps = {
   id: string;
+  version: number;
   status: RoundStatus;
   crashPoint: number;
   provablyFairStrategyId: string;
@@ -64,6 +65,7 @@ type NewRoundProps = {
 
 export class Round {
   private _id: string;
+  private _version: number;
   private _status: RoundStatus;
   private _crashPoint: number;
   private _provablyFairStrategyId: string;
@@ -82,6 +84,7 @@ export class Round {
 
   private constructor(props: RoundProps) {
     this._id = props.id;
+    this._version = props.version;
     this._status = props.status;
     this._crashPoint = props.crashPoint;
     this._provablyFairStrategyId = props.provablyFairStrategyId;
@@ -112,6 +115,7 @@ export class Round {
 
     const roundProps: RoundProps = {
       id: props.id,
+      version: 1,
       status: RoundStatus.BETTING_OPEN,
       crashPoint: props.crashPoint,
       provablyFairStrategyId:
@@ -156,6 +160,10 @@ export class Round {
 
   get id(): string {
     return this._id;
+  }
+
+  get version(): number {
+    return this._version;
   }
 
   get status(): RoundStatus {
@@ -430,6 +438,12 @@ export class Round {
   ): RoundErrors.RoundResult {
     if (!props.id.trim()) {
       return Round.failure(new RoundErrors.RoundIdIsRequiredError());
+    }
+
+    if (!Number.isInteger(props.version) || props.version <= 0) {
+      return Round.failure(
+        new RoundErrors.RoundVersionMustBeGreaterThanZeroError(),
+      );
     }
 
     if (!props.serverSeed.trim()) {

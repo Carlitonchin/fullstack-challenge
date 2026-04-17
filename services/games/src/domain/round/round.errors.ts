@@ -119,6 +119,14 @@ export class RoundIdIsRequiredError extends DomainError<"ROUND_ID_IS_REQUIRED"> 
   }
 }
 
+export class RoundVersionMustBeGreaterThanZeroError extends DomainError<"ROUND_VERSION_MUST_BE_GREATER_THAN_ZERO"> {
+  override readonly name = "ROUND_VERSION_MUST_BE_GREATER_THAN_ZERO" as const;
+
+  constructor() {
+    super("Round version must be greater than zero");
+  }
+}
+
 export class ServerSeedIsRequiredError extends DomainError<"SERVER_SEED_IS_REQUIRED"> {
   override readonly name = "SERVER_SEED_IS_REQUIRED" as const;
 
@@ -243,6 +251,7 @@ export type RoundDomainError =
   | RoundCannotFailBeforeItCrashesError
   | RoundCanOnlySettleFromCrashedStatusError
   | RoundIdIsRequiredError
+  | RoundVersionMustBeGreaterThanZeroError
   | ServerSeedIsRequiredError
   | ServerSeedHashIsRequiredError
   | ProvablyFairStrategyIdIsRequiredError
