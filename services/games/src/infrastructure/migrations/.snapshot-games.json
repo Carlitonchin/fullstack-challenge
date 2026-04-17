@@ -434,6 +434,7 @@
           "name": "round_status_type",
           "schema": "public",
           "items": [
+            "WAITING_FOR_FIRST_BET",
             "BETTING_OPEN",
             "BETTING_CLOSED",
             "IN_PROGRESS",
@@ -704,6 +705,7 @@
           "name": "round_status_type",
           "schema": "public",
           "items": [
+            "WAITING_FOR_FIRST_BET",
             "BETTING_OPEN",
             "BETTING_CLOSED",
             "IN_PROGRESS",
@@ -792,6 +794,7 @@
           "default": null,
           "comment": null,
           "enumItems": [
+            "WAITING_FOR_FIRST_BET",
             "BETTING_OPEN",
             "BETTING_CLOSED",
             "IN_PROGRESS",
@@ -898,13 +901,61 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
+        "starts_at": {
+          "name": "starts_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
         "betting_closes_at": {
           "name": "betting_closes_at",
           "type": "timestamptz",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "scheduled_crash_at": {
+          "name": "scheduled_crash_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "settles_at": {
+          "name": "settles_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
           "unique": false,
           "length": 6,
           "precision": null,
@@ -1101,6 +1152,7 @@
           "name": "round_status_type",
           "schema": "public",
           "items": [
+            "WAITING_FOR_FIRST_BET",
             "BETTING_OPEN",
             "BETTING_CLOSED",
             "IN_PROGRESS",
@@ -1193,6 +1245,22 @@
         },
         "player_id": {
           "name": "player_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "player_username": {
+          "name": "player_username",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -1443,6 +1511,17 @@
           "unique": false
         },
         {
+          "keyName": "bets_round_id_player_id_unique",
+          "columnNames": [
+            "round_id",
+            "player_id"
+          ],
+          "composite": true,
+          "constraint": true,
+          "primary": false,
+          "unique": true
+        },
+        {
           "keyName": "bets_pkey",
           "columnNames": [
             "id"
@@ -1465,6 +1544,12 @@
           "expression": "length(trim(player_id)) > 0",
           "definition": "check (length(trim(player_id)) > 0)",
           "columnName": "player_id"
+        },
+        {
+          "name": "bets_player_username_check",
+          "expression": "length(trim(player_username)) > 0",
+          "definition": "check (length(trim(player_username)) > 0)",
+          "columnName": "player_username"
         },
         {
           "name": "bets_currency_check",
@@ -1510,6 +1595,7 @@
           "name": "round_status_type",
           "schema": "public",
           "items": [
+            "WAITING_FOR_FIRST_BET",
             "BETTING_OPEN",
             "BETTING_CLOSED",
             "IN_PROGRESS",
@@ -1550,6 +1636,7 @@
       "name": "round_status_type",
       "schema": "public",
       "items": [
+        "WAITING_FOR_FIRST_BET",
         "BETTING_OPEN",
         "BETTING_CLOSED",
         "IN_PROGRESS",

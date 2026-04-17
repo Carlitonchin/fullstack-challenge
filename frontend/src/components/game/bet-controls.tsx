@@ -140,8 +140,10 @@ export function BetControls({
 
   const hasWallet = wallet !== null && wallet !== undefined
   const hasRound = Boolean(round)
+  const isRoundAcceptingBets =
+    round?.status === "WAITING_FOR_FIRST_BET" || round?.status === "BETTING_OPEN"
   const canBet =
-    round?.status === "BETTING_OPEN" &&
+    isRoundAcceptingBets &&
     !currentRoundBet &&
     !isLoadingRound &&
     !isLoadingWallet &&
@@ -281,8 +283,10 @@ export function BetControls({
                 ? getRoundBetButtonLabel(currentRoundBet.status)
                 : !hasRound
                   ? "Waiting for round"
-                  : round?.status !== "BETTING_OPEN"
+                  : !isRoundAcceptingBets
                     ? "Wait for next round"
+                    : round?.status === "WAITING_FOR_FIRST_BET"
+                      ? "Place First Bet"
                     : "Place Bet"}
           </Button>
         )}

@@ -33,22 +33,32 @@ export function CrashChart({ round, serverTime, isLoading }: CrashChartProps) {
     }
 
     switch (round.status) {
+      case "WAITING_FOR_FIRST_BET":
+        return {
+          multiplier: 1,
+          countdownSeconds: null,
+          elapsedInMs: 0,
+        }
       case "BETTING_OPEN":
         return {
           multiplier: 1,
-          countdownSeconds: Math.max(
-            0,
-            Math.ceil((new Date(round.bettingClosesAt).getTime() - displayNow) / 1000),
-          ),
+          countdownSeconds: round.bettingClosesAt
+            ? Math.max(
+                0,
+                Math.ceil((new Date(round.bettingClosesAt).getTime() - displayNow) / 1000),
+              )
+            : null,
           elapsedInMs: 0,
         }
       case "BETTING_CLOSED":
         return {
           multiplier: 1,
-          countdownSeconds: Math.max(
-            0,
-            Math.ceil((new Date(round.startsAt).getTime() - displayNow) / 1000),
-          ),
+          countdownSeconds: round.startsAt
+            ? Math.max(
+                0,
+                Math.ceil((new Date(round.startsAt).getTime() - displayNow) / 1000),
+              )
+            : null,
           elapsedInMs: 0,
         }
       case "IN_PROGRESS":
@@ -122,6 +132,7 @@ export function CrashChart({ round, serverTime, isLoading }: CrashChartProps) {
       !round ||
       round.status === "BETTING_OPEN" ||
       round.status === "BETTING_CLOSED" ||
+      round.status === "WAITING_FOR_FIRST_BET" ||
       round.status === "ERROR"
     ) {
       return
@@ -211,6 +222,7 @@ export function CrashChart({ round, serverTime, isLoading }: CrashChartProps) {
 
   const isBettingOpen = round?.status === "BETTING_OPEN"
   const isBettingClosed = round?.status === "BETTING_CLOSED"
+  const isWaitingForFirstBet = round?.status === "WAITING_FOR_FIRST_BET"
   const isRunning = round?.status === "IN_PROGRESS"
   const isCrashed = round?.status === "CRASHED" || round?.status === "SETTLED"
   const isError = round?.status === "ERROR"
@@ -250,6 +262,20 @@ export function CrashChart({ round, serverTime, isLoading }: CrashChartProps) {
                 </span>
                 <span className="text-xs uppercase tracking-widest text-muted-foreground">
                   Place your bet
+                </span>
+              </>
+            )}
+
+            {isWaitingForFirstBet && (
+              <>
+                <Badge variant="outline" className="animate-pulse text-xs">
+                  Waiting for first bet
+                </Badge>
+                <span className="font-heading text-4xl font-bold tracking-tighter tabular-nums text-foreground">
+                  1.00x
+                </span>
+                <span className="text-xs uppercase tracking-widest text-muted-foreground">
+                  First confirmed bet starts the round
                 </span>
               </>
             )}

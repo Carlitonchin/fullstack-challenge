@@ -97,6 +97,20 @@ function createRound() {
   );
 }
 
+function openRound(round = createRound(), openedAt = CREATED_AT) {
+  const result = round.openBettingFromFirstAcceptedBet({
+    openedAt,
+    bettingWindowInSeconds: BETTING_WINDOW_IN_SECONDS,
+    startDelayInMs: START_DELAY_IN_MS,
+    roundDurationInMs: ROUND_DURATION_IN_MS,
+    crashRevealInMs: CRASH_REVEAL_IN_MS,
+  });
+
+  expect(result.success).toBe(true);
+
+  return round;
+}
+
 function createStrategyDefinition(strategyId: string = STRATEGY_ID) {
   return assertSuccess(
     ProvablyFairStrategyDefinition.create({
@@ -114,18 +128,16 @@ function createStrategyDefinition(strategyId: string = STRATEGY_ID) {
 }
 
 describe("Round", () => {
-  it("creates a betting-open round and records the creation event", () => {
+  it("creates a waiting round and records the creation event", () => {
     const round = createRound();
-    const bettingClosesAt = atOffsetSeconds(BETTING_CLOSE_OFFSET_SECONDS);
 
-    expect(round.status).toBe(RoundStatus.BETTING_OPEN);
-    expect(round.isBettingOpen).toBe(true);
-    expect(round.bettingClosesAt).toEqual(bettingClosesAt);
+    expect(round.status).toBe(RoundStatus.WAITING_FOR_FIRST_BET);
+    expect(round.isWaitingForFirstBet).toBe(true);
+    expect(round.bettingClosesAt).toBeNull();
+    expect(round.startsAt).toBeNull();
+    expect(round.scheduledCrashAt).toBeNull();
+    expect(round.settlesAt).toBeNull();
     expect(round.canAcceptBets(CREATED_AT)).toBe(true);
-    expect(round.canAcceptBets(bettingClosesAt)).toBe(false);
-    expect(round.canAcceptBets(atOffsetMs(AFTER_BETTING_CLOSE_OFFSET_MS))).toBe(
-      false,
-    );
 
     const events = round.pullDomainEvents();
 
@@ -137,10 +149,47 @@ describe("Round", () => {
       provablyFairStrategyId: STRATEGY_ID,
       nonce: ROUND_ID,
       serverSeedHash: SERVER_SEED_HASH,
-      bettingClosesAt,
     });
     expect(events[0]?.occurredAt).toEqual(CREATED_AT);
     expect(round.pullDomainEvents()).toHaveLength(0);
+  });
+
+  it("opens betting from the first confirmed debit and records the real schedule", () => {
+    const round = createRound();
+    const bettingClosesAt = atOffsetSeconds(BETTING_CLOSE_OFFSET_SECONDS);
+
+    round.pullDomainEvents();
+
+    expect(
+      round.openBettingFromFirstAcceptedBet({
+        openedAt: CREATED_AT,
+        bettingWindowInSeconds: BETTING_WINDOW_IN_SECONDS,
+        startDelayInMs: START_DELAY_IN_MS,
+        roundDurationInMs: ROUND_DURATION_IN_MS,
+        crashRevealInMs: CRASH_REVEAL_IN_MS,
+      }).success,
+    ).toBe(true);
+
+    expect(round.status).toBe(RoundStatus.BETTING_OPEN);
+    expect(round.isBettingOpen).toBe(true);
+    expect(round.bettingClosesAt).toEqual(bettingClosesAt);
+    expect(round.canAcceptBets(CREATED_AT)).toBe(true);
+    expect(round.canAcceptBets(bettingClosesAt)).toBe(false);
+    expect(round.canAcceptBets(atOffsetMs(AFTER_BETTING_CLOSE_OFFSET_MS))).toBe(
+      false,
+    );
+    expect(round.pullDomainEvents()).toEqual([
+      {
+        type: "round.betting-opened",
+        roundId: ROUND_ID,
+        occurredAt: CREATED_AT,
+        bettingOpenedAt: CREATED_AT,
+        bettingClosesAt,
+        startsAt: atOffsetSeconds(START_OFFSET_SECONDS),
+        scheduledCrashAt: atOffsetSeconds(CRASH_OFFSET_SECONDS),
+        settlesAt: atOffsetSeconds(CRASH_OFFSET_SECONDS + 1),
+      },
+    ]);
   });
 
   it("rejects creation when the betting window is not positive", () => {
@@ -201,7 +250,7 @@ describe("Round", () => {
   });
 
   it("projects public provably fair data without revealing the seed before the round ends", () => {
-    const round = createRound();
+    const round = openRound();
     const strategyDefinition = createStrategyDefinition();
 
     const result = round.projectProvablyFairPublicSnapshot(strategyDefinition);
@@ -228,7 +277,7 @@ describe("Round", () => {
   });
 
   it("reveals the server seed in the public projection once the round is terminal", () => {
-    const round = createRound();
+    const round = openRound();
     const strategyDefinition = createStrategyDefinition();
 
     expect(round.closeBetting(atOffsetSeconds(BETTING_CLOSE_OFFSET_SECONDS)).success).toBe(
@@ -251,7 +300,7 @@ describe("Round", () => {
   });
 
   it("rejects projecting public provably fair data when the strategy definition does not match the round", () => {
-    const round = createRound();
+    const round = openRound();
     const otherStrategyDefinition = createStrategyDefinition(OTHER_STRATEGY_ID);
 
     const result = round.projectProvablyFairPublicSnapshot(
@@ -269,7 +318,7 @@ describe("Round", () => {
   });
 
   it("transitions through close betting, start, crash, and settle with events", () => {
-    const round = createRound();
+    const round = openRound();
     const closedAt = atOffsetSeconds(BETTING_CLOSE_OFFSET_SECONDS);
     const startedAt = atOffsetSeconds(START_OFFSET_SECONDS);
     const crashedAt = atOffsetSeconds(CRASH_OFFSET_SECONDS);
@@ -314,6 +363,27 @@ describe("Round", () => {
       "ROUND_CAN_ONLY_START_FROM_BETTING_CLOSED",
     );
 
+    const closeWhileWaiting = round.closeBetting(
+      atOffsetSeconds(BETTING_CLOSE_OFFSET_SECONDS),
+    );
+    expect(closeWhileWaiting.success).toBe(false);
+    if (closeWhileWaiting.success) {
+      throw new Error("expected failure");
+    }
+    expect(closeWhileWaiting.error.name).toBe(
+      "ROUND_CAN_ONLY_CLOSE_BETTING_FROM_BETTING_OPEN",
+    );
+
+    expect(
+      round.openBettingFromFirstAcceptedBet({
+        openedAt: CREATED_AT,
+        bettingWindowInSeconds: BETTING_WINDOW_IN_SECONDS,
+        startDelayInMs: START_DELAY_IN_MS,
+        roundDurationInMs: ROUND_DURATION_IN_MS,
+        crashRevealInMs: CRASH_REVEAL_IN_MS,
+      }).success,
+    ).toBe(true);
+
     expect(round.closeBetting(atOffsetSeconds(BETTING_CLOSE_OFFSET_SECONDS)).success).toBe(
       true,
     );
@@ -342,7 +412,7 @@ describe("Round", () => {
   });
 
   it("rejects temporal violations in lifecycle operations", () => {
-    const round = createRound();
+    const round = openRound();
 
     const closeBeforeCreation = round.closeBetting(
       atOffsetMs(PRE_CREATION_OFFSET_MS),
@@ -407,7 +477,7 @@ describe("Round", () => {
   });
 
   it("rejects invalid failure attempts", () => {
-    const round = createRound();
+    const round = openRound();
 
     const blankReason = round.fail("   ", atOffsetSeconds(EARLY_START_ATTEMPT_OFFSET_SECONDS));
     expect(blankReason.success).toBe(false);

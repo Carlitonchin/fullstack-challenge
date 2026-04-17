@@ -46,6 +46,23 @@ export class RoundCanOnlyCloseBettingFromBettingOpenError extends DomainError<"R
   }
 }
 
+export class RoundCanOnlyOpenBettingFromWaitingForFirstBetError extends DomainError<"ROUND_CAN_ONLY_OPEN_BETTING_FROM_WAITING_FOR_FIRST_BET"> {
+  override readonly name =
+    "ROUND_CAN_ONLY_OPEN_BETTING_FROM_WAITING_FOR_FIRST_BET" as const;
+
+  constructor() {
+    super("Round can only open betting from WAITING_FOR_FIRST_BET status");
+  }
+}
+
+export class BettingCannotOpenBeforeRoundCreationError extends DomainError<"BETTING_CANNOT_OPEN_BEFORE_ROUND_CREATION"> {
+  override readonly name = "BETTING_CANNOT_OPEN_BEFORE_ROUND_CREATION" as const;
+
+  constructor() {
+    super("Betting cannot open before round creation");
+  }
+}
+
 export class BettingCannotCloseBeforeRoundCreationError extends DomainError<"BETTING_CANNOT_CLOSE_BEFORE_ROUND_CREATION"> {
   override readonly name = "BETTING_CANNOT_CLOSE_BEFORE_ROUND_CREATION" as const;
 
@@ -244,6 +261,41 @@ export class RoundStartTimeMustBeAfterBettingCloseTimeError extends DomainError<
   }
 }
 
+export class ActiveRoundsMustHaveABettingCloseTimeError extends DomainError<"ACTIVE_ROUNDS_MUST_HAVE_A_BETTING_CLOSE_TIME"> {
+  override readonly name =
+    "ACTIVE_ROUNDS_MUST_HAVE_A_BETTING_CLOSE_TIME" as const;
+
+  constructor() {
+    super("Active rounds beyond waiting state must have a betting close time");
+  }
+}
+
+export class ActiveRoundsMustHaveAScheduledStartTimeError extends DomainError<"ACTIVE_ROUNDS_MUST_HAVE_A_SCHEDULED_START_TIME"> {
+  override readonly name =
+    "ACTIVE_ROUNDS_MUST_HAVE_A_SCHEDULED_START_TIME" as const;
+
+  constructor() {
+    super("Active rounds beyond waiting state must have a scheduled start time");
+  }
+}
+
+export class ActiveRoundsMustHaveAScheduledCrashTimeError extends DomainError<"ACTIVE_ROUNDS_MUST_HAVE_A_SCHEDULED_CRASH_TIME"> {
+  override readonly name =
+    "ACTIVE_ROUNDS_MUST_HAVE_A_SCHEDULED_CRASH_TIME" as const;
+
+  constructor() {
+    super("Active rounds beyond waiting state must have a scheduled crash time");
+  }
+}
+
+export class ActiveRoundsMustHaveASettleTimeError extends DomainError<"ACTIVE_ROUNDS_MUST_HAVE_A_SETTLE_TIME"> {
+  override readonly name = "ACTIVE_ROUNDS_MUST_HAVE_A_SETTLE_TIME" as const;
+
+  constructor() {
+    super("Active rounds beyond waiting state must have a settle time");
+  }
+}
+
 export class ScheduledCrashTimeMustBeAtOrAfterRoundStartTimeError extends DomainError<"SCHEDULED_CRASH_TIME_MUST_BE_AT_OR_AFTER_ROUND_START_TIME"> {
   override readonly name =
     "SCHEDULED_CRASH_TIME_MUST_BE_AT_OR_AFTER_ROUND_START_TIME" as const;
@@ -346,6 +398,8 @@ export type RoundDomainError =
   | CrashRevealCannotBeNegativeError
   | RoundDurationCannotBeNegativeError
   | RoundCanOnlyCloseBettingFromBettingOpenError
+  | RoundCanOnlyOpenBettingFromWaitingForFirstBetError
+  | BettingCannotOpenBeforeRoundCreationError
   | BettingCannotCloseBeforeRoundCreationError
   | RoundCanOnlyStartFromBettingClosedError
   | RoundCannotStartBeforeCreationError
@@ -370,6 +424,10 @@ export type RoundDomainError =
   | CrashPointMustBeGreaterThanOneError
   | BettingCloseTimeMustBeAfterCreationTimeError
   | RoundStartTimeMustBeAfterBettingCloseTimeError
+  | ActiveRoundsMustHaveABettingCloseTimeError
+  | ActiveRoundsMustHaveAScheduledStartTimeError
+  | ActiveRoundsMustHaveAScheduledCrashTimeError
+  | ActiveRoundsMustHaveASettleTimeError
   | ScheduledCrashTimeMustBeAtOrAfterRoundStartTimeError
   | RoundSettleTimeMustBeAtOrAfterScheduledCrashTimeError
   | StartedRoundsMustHaveAStartTimeError

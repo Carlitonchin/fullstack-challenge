@@ -4,6 +4,7 @@ import { ProvablyFairStrategyDefinitionSchema } from "./provably-fair-strategy-d
 import { BetSchema } from "./bet";
 
 export enum RoundStatusType {
+  WAITING_FOR_FIRST_BET = "WAITING_FOR_FIRST_BET",
   BETTING_OPEN = "BETTING_OPEN",
   BETTING_CLOSED = "BETTING_CLOSED",
   IN_PROGRESS = "IN_PROGRESS",
@@ -67,19 +68,23 @@ export const RoundSchema = defineEntity({
     startsAt: p
       .datetime()
       .fieldName("starts_at")
-      .columnType("timestamptz"),
+      .columnType("timestamptz")
+      .nullable(),
     bettingClosesAt: p
       .datetime()
       .fieldName("betting_closes_at")
-      .columnType("timestamptz"),
+      .columnType("timestamptz")
+      .nullable(),
     scheduledCrashAt: p
       .datetime()
       .fieldName("scheduled_crash_at")
-      .columnType("timestamptz"),
+      .columnType("timestamptz")
+      .nullable(),
     settlesAt: p
       .datetime()
       .fieldName("settles_at")
-      .columnType("timestamptz"),
+      .columnType("timestamptz")
+      .nullable(),
     crashedAt: p
       .datetime()
       .fieldName("crashed_at")

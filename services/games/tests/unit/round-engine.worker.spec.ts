@@ -3,7 +3,7 @@
 import { describe, expect, it } from "bun:test";
 
 import { RoundEngineWorker } from "../../src/application/round-engine.worker";
-import { Round } from "../../src/domain/round/round";
+import { Round, RoundStatus } from "../../src/domain/round/round";
 import { NEXT_ROUND_DELAY_IN_MS } from "../../src/domain/round/round-timing.strategy";
 
 const CREATED_AT = new Date("2026-04-17T12:00:00.000Z");
@@ -35,15 +35,58 @@ function createSettledRound(): Round {
     }),
   );
 
-  expect(round.closeBetting(round.bettingClosesAt).success).toBe(true);
-  expect(round.start(round.startsAt).success).toBe(true);
-  expect(round.crash(round.scheduledCrashAt).success).toBe(true);
-  expect(round.settle(round.settlesAt).success).toBe(true);
+  expect(
+    round.openBettingFromFirstAcceptedBet({
+      openedAt: CREATED_AT,
+      bettingWindowInSeconds: 10,
+      startDelayInMs: 30_000,
+      roundDurationInMs: 3_000,
+      crashRevealInMs: 2_000,
+    }).success,
+  ).toBe(true);
+  expect(round.closeBetting(round.bettingClosesAt!).success).toBe(true);
+  expect(round.start(round.startsAt!).success).toBe(true);
+  expect(round.crash(round.scheduledCrashAt!).success).toBe(true);
+  expect(round.settle(round.settlesAt!).success).toBe(true);
 
   return round;
 }
 
 describe("RoundEngineWorker", () => {
+  it("does not advance a round that is waiting for the first bet", () => {
+    const worker = new RoundEngineWorker(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    const waitingRound = assertSuccess(
+      Round.new({
+        id: "round-2",
+        crashPoint: 2.5,
+        provablyFairStrategyId: "casino-crash-v1",
+        nonce: "round-2",
+        serverSeedHash: "seed-hash",
+        serverSeed: "seed",
+        createdAt: CREATED_AT,
+        bettingWindowInSeconds: 10,
+        startDelayInMs: 30_000,
+        roundDurationInMs: 3_000,
+        crashRevealInMs: 2_000,
+      }),
+    );
+    const nextAt = (worker as any).resolveNextWakeUp(
+      waitingRound,
+      CREATED_AT,
+    ) as Date | null;
+
+    expect(waitingRound.status).toBe(RoundStatus.WAITING_FOR_FIRST_BET);
+    expect(waitingRound.shouldCloseBetting(new Date(CREATED_AT.getTime() + 60_000))).toBe(
+      false,
+    );
+    expect(nextAt?.getTime()).toBeGreaterThan(CREATED_AT.getTime());
+  });
+
   it("waits 60 seconds after settlement before opening the next round", () => {
     const worker = new RoundEngineWorker(
       {} as never,
@@ -54,11 +97,11 @@ describe("RoundEngineWorker", () => {
     const settledRound = createSettledRound();
     const nextAt = (worker as any).resolveNextWakeUp(
       settledRound,
-      new Date(settledRound.settlesAt.getTime() + 1_000),
+      new Date(settledRound.settlesAt!.getTime() + 1_000),
     ) as Date | null;
 
     expect(nextAt).toEqual(
-      new Date(settledRound.settlesAt.getTime() + NEXT_ROUND_DELAY_IN_MS),
+      new Date(settledRound.settlesAt!.getTime() + NEXT_ROUND_DELAY_IN_MS),
     );
   });
 });

@@ -18,7 +18,11 @@ export function multiplierFromRoundCurve(
 }
 
 export function getRoundElapsedInMs(round: Round, now: number): number | null {
-  const startedAt = new Date(round.startedAt ?? round.startsAt).getTime()
+  if (!round.startedAt && !round.startsAt) {
+    return null
+  }
+
+  const startedAt = new Date(round.startedAt ?? round.startsAt!).getTime()
 
   if (!Number.isFinite(startedAt)) {
     return null
@@ -28,11 +32,11 @@ export function getRoundElapsedInMs(round: Round, now: number): number | null {
 }
 
 export function getRoundDurationInMs(round: Round): number | null {
-  if (!round.scheduledCrashAt) {
+  if (!round.scheduledCrashAt || (!round.startedAt && !round.startsAt)) {
     return null
   }
 
-  const startedAt = new Date(round.startedAt ?? round.startsAt).getTime()
+  const startedAt = new Date(round.startedAt ?? round.startsAt!).getTime()
   const scheduledCrashAt = new Date(round.scheduledCrashAt).getTime()
 
   if (!Number.isFinite(startedAt) || !Number.isFinite(scheduledCrashAt)) {

@@ -3,6 +3,7 @@ import { type RoundDomainEvent } from "./round.events";
 import type { ProvablyFairStrategyDefinition } from "@games/domain/provably-fair/provably-fair-strategy-definition";
 
 export enum RoundStatus {
+  WAITING_FOR_FIRST_BET = "WAITING_FOR_FIRST_BET",
   BETTING_OPEN = "BETTING_OPEN",
   BETTING_CLOSED = "BETTING_CLOSED",
   IN_PROGRESS = "IN_PROGRESS",
@@ -41,11 +42,11 @@ export type RoundProps = {
   nonce: string;
   serverSeedHash: string;
   serverSeed: string;
-  bettingClosesAt: Date;
-  startsAt: Date;
+  bettingClosesAt: Date | null;
+  startsAt: Date | null;
   startedAt: Date | null;
-  scheduledCrashAt: Date;
-  settlesAt: Date;
+  scheduledCrashAt: Date | null;
+  settlesAt: Date | null;
   crashedAt: Date | null;
   crashMultiplier: number | null;
   failedAt: Date | null;
@@ -77,11 +78,11 @@ export class Round {
   private _nonce: string;
   private _serverSeedHash: string;
   private _serverSeed: string;
-  private _bettingClosesAt: Date;
-  private _startsAt: Date;
+  private _bettingClosesAt: Date | null;
+  private _startsAt: Date | null;
   private _startedAt: Date | null;
-  private _scheduledCrashAt: Date;
-  private _settlesAt: Date;
+  private _scheduledCrashAt: Date | null;
+  private _settlesAt: Date | null;
   private _crashedAt: Date | null;
   private _crashMultiplier: number | null;
   private _failedAt: Date | null;
@@ -136,34 +137,21 @@ export class Round {
       );
     }
 
-    const bettingClosesAt = new Date(
-      props.createdAt.getTime() + props.bettingWindowInSeconds * 1000,
-    );
-    const startsAt = new Date(
-      bettingClosesAt.getTime() + props.startDelayInMs,
-    );
-    const scheduledCrashAt = new Date(
-      startsAt.getTime() + props.roundDurationInMs,
-    );
-    const settlesAt = new Date(
-      scheduledCrashAt.getTime() + props.crashRevealInMs,
-    );
-
     const roundProps: RoundProps = {
       id: props.id,
       version: 1,
-      status: RoundStatus.BETTING_OPEN,
+      status: RoundStatus.WAITING_FOR_FIRST_BET,
       crashPoint: props.crashPoint,
       provablyFairStrategyId:
         props.provablyFairStrategyId ?? DEFAULT_PROVABLY_FAIR_STRATEGY_ID,
       nonce: props.nonce ?? props.id,
       serverSeedHash: props.serverSeedHash,
       serverSeed: props.serverSeed,
-      bettingClosesAt,
-      startsAt,
+      bettingClosesAt: null,
+      startsAt: null,
       startedAt: null,
-      scheduledCrashAt,
-      settlesAt,
+      scheduledCrashAt: null,
+      settlesAt: null,
       crashedAt: null,
       crashMultiplier: null,
       failedAt: null,
@@ -184,10 +172,6 @@ export class Round {
       roundId: round.id,
       occurredAt: props.createdAt,
       crashPoint: round.crashPoint,
-      bettingClosesAt: round.bettingClosesAt,
-      startsAt: round.startsAt,
-      scheduledCrashAt: round.scheduledCrashAt,
-      settlesAt: round.settlesAt,
       provablyFairStrategyId: round.provablyFairStrategyId,
       nonce: round.nonce,
       serverSeedHash: round.serverSeedHash,
@@ -262,11 +246,11 @@ export class Round {
     return this._serverSeed;
   }
 
-  get bettingClosesAt(): Date {
+  get bettingClosesAt(): Date | null {
     return this._bettingClosesAt;
   }
 
-  get startsAt(): Date {
+  get startsAt(): Date | null {
     return this._startsAt;
   }
 
@@ -274,11 +258,11 @@ export class Round {
     return this._startedAt;
   }
 
-  get scheduledCrashAt(): Date {
+  get scheduledCrashAt(): Date | null {
     return this._scheduledCrashAt;
   }
 
-  get settlesAt(): Date {
+  get settlesAt(): Date | null {
     return this._settlesAt;
   }
 
@@ -310,6 +294,10 @@ export class Round {
     const events = [...this._domainEvents];
     this._domainEvents = [];
     return events;
+  }
+
+  get isWaitingForFirstBet(): boolean {
+    return this._status === RoundStatus.WAITING_FOR_FIRST_BET;
   }
 
   get isBettingOpen(): boolean {
@@ -378,19 +366,106 @@ export class Round {
   }
 
   shouldCloseBetting(at: Date = new Date()): boolean {
-    return this.isBettingOpen && at.getTime() >= this.bettingClosesAt.getTime();
+    return (
+      this.isBettingOpen &&
+      this.bettingClosesAt !== null &&
+      at.getTime() >= this.bettingClosesAt.getTime()
+    );
   }
 
   shouldStart(at: Date = new Date()): boolean {
-    return this.isBettingClosed && at.getTime() >= this.startsAt.getTime();
+    return (
+      this.isBettingClosed &&
+      this.startsAt !== null &&
+      at.getTime() >= this.startsAt.getTime()
+    );
   }
 
   shouldCrash(at: Date = new Date()): boolean {
-    return this.isInProgress && at.getTime() >= this.scheduledCrashAt.getTime();
+    return (
+      this.isInProgress &&
+      this.scheduledCrashAt !== null &&
+      at.getTime() >= this.scheduledCrashAt.getTime()
+    );
   }
 
   shouldSettle(at: Date = new Date()): boolean {
-    return this.isCrashed && at.getTime() >= this.settlesAt.getTime();
+    return (
+      this.isCrashed &&
+      this.settlesAt !== null &&
+      at.getTime() >= this.settlesAt.getTime()
+    );
+  }
+
+  openBettingFromFirstAcceptedBet(params: {
+    openedAt: Date;
+    bettingWindowInSeconds: number;
+    startDelayInMs: number;
+    roundDurationInMs: number;
+    crashRevealInMs: number;
+  }): RoundErrors.RoundResult {
+    if (!this.isWaitingForFirstBet) {
+      return Round.failure(
+        new RoundErrors.RoundCanOnlyOpenBettingFromWaitingForFirstBetError(),
+      );
+    }
+
+    if (params.openedAt.getTime() < this.createdAt.getTime()) {
+      return Round.failure(
+        new RoundErrors.BettingCannotOpenBeforeRoundCreationError(),
+      );
+    }
+
+    if (params.bettingWindowInSeconds <= 0) {
+      return Round.failure(
+        new RoundErrors.BettingWindowMustBeGreaterThanZeroError(),
+      );
+    }
+
+    if (params.startDelayInMs < 0) {
+      return Round.failure(new RoundErrors.StartDelayCannotBeNegativeError());
+    }
+
+    if (params.roundDurationInMs < 0) {
+      return Round.failure(
+        new RoundErrors.RoundDurationCannotBeNegativeError(),
+      );
+    }
+
+    if (params.crashRevealInMs < 0) {
+      return Round.failure(
+        new RoundErrors.CrashRevealCannotBeNegativeError(),
+      );
+    }
+
+    const bettingClosesAt = new Date(
+      params.openedAt.getTime() + params.bettingWindowInSeconds * 1000,
+    );
+    const startsAt = new Date(bettingClosesAt.getTime() + params.startDelayInMs);
+    const scheduledCrashAt = new Date(
+      startsAt.getTime() + params.roundDurationInMs,
+    );
+    const settlesAt = new Date(
+      scheduledCrashAt.getTime() + params.crashRevealInMs,
+    );
+
+    this._status = RoundStatus.BETTING_OPEN;
+    this._bettingClosesAt = bettingClosesAt;
+    this._startsAt = startsAt;
+    this._scheduledCrashAt = scheduledCrashAt;
+    this._settlesAt = settlesAt;
+    this.recordDomainEvent({
+      type: "round.betting-opened",
+      roundId: this.id,
+      occurredAt: params.openedAt,
+      bettingOpenedAt: params.openedAt,
+      bettingClosesAt,
+      startsAt,
+      scheduledCrashAt,
+      settlesAt,
+    });
+
+    return Round.success();
   }
 
   closeBetting(closedAt: Date = new Date()): RoundErrors.RoundResult {
@@ -406,7 +481,10 @@ export class Round {
       );
     }
 
-    if (closedAt.getTime() < this.bettingClosesAt.getTime()) {
+    if (
+      this.bettingClosesAt === null ||
+      closedAt.getTime() < this.bettingClosesAt.getTime()
+    ) {
       return Round.failure(
         new RoundErrors.BettingCloseTimeMustBeAfterCreationTimeError(),
       );
@@ -435,7 +513,7 @@ export class Round {
       );
     }
 
-    if (startedAt.getTime() < this.startsAt.getTime()) {
+    if (this.startsAt === null || startedAt.getTime() < this.startsAt.getTime()) {
       return Round.failure(
         new RoundErrors.RoundCannotStartBeforeScheduledStartTimeError(),
       );
@@ -465,7 +543,10 @@ export class Round {
       );
     }
 
-    if (crashedAt.getTime() < this.scheduledCrashAt.getTime()) {
+    if (
+      this.scheduledCrashAt === null ||
+      crashedAt.getTime() < this.scheduledCrashAt.getTime()
+    ) {
       return Round.failure(
         new RoundErrors.RoundCannotCrashBeforeScheduledCrashTimeError(),
       );
@@ -538,7 +619,7 @@ export class Round {
       );
     }
 
-    if (settledAt.getTime() < this.settlesAt.getTime()) {
+    if (this.settlesAt === null || settledAt.getTime() < this.settlesAt.getTime()) {
       return Round.failure(
         new RoundErrors.RoundCannotSettleBeforeScheduledSettleTimeError(),
       );
@@ -555,7 +636,12 @@ export class Round {
   }
 
   canAcceptBets(at: Date = new Date()): boolean {
-    return this.isBettingOpen && at.getTime() < this.bettingClosesAt.getTime();
+    return (
+      this.isWaitingForFirstBet ||
+      (this.isBettingOpen &&
+        this.bettingClosesAt !== null &&
+        at.getTime() < this.bettingClosesAt.getTime())
+    );
   }
 
   private static ensureInvariants(
@@ -595,25 +681,71 @@ export class Round {
       );
     }
 
-    if (props.bettingClosesAt.getTime() <= props.createdAt.getTime()) {
+    const requiresScheduledLifecycle =
+      props.status === RoundStatus.BETTING_OPEN ||
+      props.status === RoundStatus.BETTING_CLOSED ||
+      props.status === RoundStatus.IN_PROGRESS ||
+      props.status === RoundStatus.CRASHED ||
+      props.status === RoundStatus.SETTLED;
+
+    if (requiresScheduledLifecycle && props.bettingClosesAt === null) {
+      return Round.failure(
+        new RoundErrors.ActiveRoundsMustHaveABettingCloseTimeError(),
+      );
+    }
+
+    if (requiresScheduledLifecycle && props.startsAt === null) {
+      return Round.failure(
+        new RoundErrors.ActiveRoundsMustHaveAScheduledStartTimeError(),
+      );
+    }
+
+    if (requiresScheduledLifecycle && props.scheduledCrashAt === null) {
+      return Round.failure(
+        new RoundErrors.ActiveRoundsMustHaveAScheduledCrashTimeError(),
+      );
+    }
+
+    if (requiresScheduledLifecycle && props.settlesAt === null) {
+      return Round.failure(
+        new RoundErrors.ActiveRoundsMustHaveASettleTimeError(),
+      );
+    }
+
+    if (
+      props.bettingClosesAt !== null &&
+      props.bettingClosesAt.getTime() <= props.createdAt.getTime()
+    ) {
       return Round.failure(
         new RoundErrors.BettingCloseTimeMustBeAfterCreationTimeError(),
       );
     }
 
-    if (props.startsAt.getTime() < props.bettingClosesAt.getTime()) {
+    if (
+      props.startsAt !== null &&
+      props.bettingClosesAt !== null &&
+      props.startsAt.getTime() < props.bettingClosesAt.getTime()
+    ) {
       return Round.failure(
         new RoundErrors.RoundStartTimeMustBeAfterBettingCloseTimeError(),
       );
     }
 
-    if (props.scheduledCrashAt.getTime() < props.startsAt.getTime()) {
+    if (
+      props.scheduledCrashAt !== null &&
+      props.startsAt !== null &&
+      props.scheduledCrashAt.getTime() < props.startsAt.getTime()
+    ) {
       return Round.failure(
         new RoundErrors.ScheduledCrashTimeMustBeAtOrAfterRoundStartTimeError(),
       );
     }
 
-    if (props.settlesAt.getTime() < props.scheduledCrashAt.getTime()) {
+    if (
+      props.settlesAt !== null &&
+      props.scheduledCrashAt !== null &&
+      props.settlesAt.getTime() < props.scheduledCrashAt.getTime()
+    ) {
       return Round.failure(
         new RoundErrors.RoundSettleTimeMustBeAtOrAfterScheduledCrashTimeError(),
       );
@@ -689,7 +821,11 @@ export class Round {
       );
     }
 
-    if (props.startedAt && props.startedAt.getTime() < props.startsAt.getTime()) {
+    if (
+      props.startedAt &&
+      props.startsAt !== null &&
+      props.startedAt.getTime() < props.startsAt.getTime()
+    ) {
       return Round.failure(
         new RoundErrors.RoundCannotStartBeforeScheduledStartTimeError(),
       );
@@ -697,6 +833,7 @@ export class Round {
 
     if (
       props.crashedAt &&
+      props.scheduledCrashAt !== null &&
       props.crashedAt.getTime() < props.scheduledCrashAt.getTime()
     ) {
       return Round.failure(

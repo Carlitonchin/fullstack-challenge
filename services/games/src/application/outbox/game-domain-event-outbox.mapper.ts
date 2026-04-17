@@ -172,13 +172,18 @@ export class GameDomainEventOutboxMapper {
         return {
           roundId: event.roundId,
           crashPoint: event.crashPoint,
+          provablyFairStrategyId: event.provablyFairStrategyId,
+          nonce: event.nonce,
+          serverSeedHash: event.serverSeedHash,
+        };
+      case "round.betting-opened":
+        return {
+          roundId: event.roundId,
+          bettingOpenedAt: event.bettingOpenedAt.toISOString(),
           bettingClosesAt: event.bettingClosesAt.toISOString(),
           startsAt: event.startsAt.toISOString(),
           scheduledCrashAt: event.scheduledCrashAt.toISOString(),
           settlesAt: event.settlesAt.toISOString(),
-          provablyFairStrategyId: event.provablyFairStrategyId,
-          nonce: event.nonce,
-          serverSeedHash: event.serverSeedHash,
         };
       case "round.crashed":
         return {

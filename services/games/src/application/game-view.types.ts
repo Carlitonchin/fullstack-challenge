@@ -24,12 +24,12 @@ export type GameBetView = {
 export type GameRoundView = {
   id: string;
   status: RoundStatus;
-  bettingOpenedAt: string;
-  bettingClosesAt: string;
-  startsAt: string;
+  bettingOpenedAt: string | null;
+  bettingClosesAt: string | null;
+  startsAt: string | null;
   startedAt: string | null;
   scheduledCrashAt: string | null;
-  settlesAt: string;
+  settlesAt: string | null;
   crashedAt: string | null;
   currentMultiplier: number;
   curve: GameRoundCurveView;

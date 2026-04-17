@@ -10,6 +10,7 @@ import {
   RoundStatus,
 } from "@games/domain/round/round";
 import {
+  BETTING_WINDOW_IN_SECONDS,
   buildPublicRoundCurve,
   type RoundTimingStrategy,
 } from "@games/domain/round/round-timing.strategy";
@@ -99,7 +100,10 @@ export class GameQueryService {
       historyEntries.push({
         id: round.id,
         crashPoint: round.crashMultiplier ?? round.crashPoint,
-        crashedAt: round.crashedAt?.toISOString() ?? round.settlesAt.toISOString(),
+        crashedAt:
+          round.crashedAt?.toISOString() ??
+          round.settlesAt?.toISOString() ??
+          round.createdAt.toISOString(),
         serverSeedHash: round.serverSeedHash,
         playerCount: bets.filter((bet) => isPublicBetStatus(bet.status)).length,
       });
@@ -183,20 +187,21 @@ export class GameQueryService {
     return {
       id: round.id,
       status: round.status,
-      bettingOpenedAt: round.createdAt.toISOString(),
-      bettingClosesAt: round.bettingClosesAt.toISOString(),
-      startsAt: round.startsAt.toISOString(),
+      bettingOpenedAt: this.resolveBettingOpenedAt(round),
+      bettingClosesAt: round.bettingClosesAt?.toISOString() ?? null,
+      startsAt: round.startsAt?.toISOString() ?? null,
       startedAt: round.startedAt?.toISOString() ?? null,
       scheduledCrashAt: this.shouldExposeScheduledCrashAt(round)
-        ? round.scheduledCrashAt.toISOString()
+        ? round.scheduledCrashAt?.toISOString() ?? null
         : null,
-      settlesAt: round.settlesAt.toISOString(),
+      settlesAt: round.settlesAt?.toISOString() ?? null,
       crashedAt: round.crashedAt?.toISOString() ?? null,
       currentMultiplier: this.resolveMultiplier(round, at),
       curve: buildPublicRoundCurve({
         crashPoint: round.crashPoint,
-        startedAt: round.startedAt ?? round.startsAt,
-        scheduledCrashAt: round.scheduledCrashAt,
+        startedAt: round.startedAt ?? round.startsAt ?? round.createdAt,
+        scheduledCrashAt:
+          round.scheduledCrashAt ?? round.startedAt ?? round.startsAt ?? round.createdAt,
       }),
       crashPoint: round.isServerSeedRevealed ? round.crashPoint : null,
       serverSeedHash: round.serverSeedHash,
@@ -213,7 +218,8 @@ export class GameQueryService {
 
     if (
       round.status !== RoundStatus.IN_PROGRESS ||
-      round.startedAt === null
+      round.startedAt === null ||
+      round.scheduledCrashAt === null
     ) {
       return 1;
     }
@@ -232,6 +238,16 @@ export class GameQueryService {
       round.status === RoundStatus.SETTLED ||
       round.status === RoundStatus.ERROR
     );
+  }
+
+  private resolveBettingOpenedAt(round: Round): string | null {
+    if (round.isWaitingForFirstBet || round.bettingClosesAt === null) {
+      return null;
+    }
+
+    return new Date(
+      round.bettingClosesAt.getTime() - BETTING_WINDOW_IN_SECONDS * 1000,
+    ).toISOString();
   }
 
   mapBet(bet: Bet): GameBetView {

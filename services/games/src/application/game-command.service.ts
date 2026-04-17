@@ -23,7 +23,12 @@ import { Bet, BetStatus } from "@games/domain/bet/bet";
 import { BetAmount } from "@games/domain/bet/bet-amount";
 import type { Round } from "@games/domain/round/round";
 import { RoundStatus } from "@games/domain/round/round";
-import type { RoundTimingStrategy } from "@games/domain/round/round-timing.strategy";
+import {
+  BETTING_WINDOW_IN_SECONDS,
+  ROUND_CRASH_REVEAL_IN_MS,
+  ROUND_START_DELAY_IN_MS,
+  type RoundTimingStrategy,
+} from "@games/domain/round/round-timing.strategy";
 import { ROUND_TIMING_STRATEGY } from "@games/domain/round/round.tokens";
 import { GameOutboxService } from "@games/application/game-outbox.service";
 import { GameQueryService } from "@games/application/game-query.service";
@@ -182,7 +187,11 @@ export class GameCommandService {
       throw new ConflictException("Cashout has already been processed");
     }
 
-    if (round.status !== RoundStatus.IN_PROGRESS || round.startedAt === null) {
+    if (
+      round.status !== RoundStatus.IN_PROGRESS ||
+      round.startedAt === null ||
+      round.scheduledCrashAt === null
+    ) {
       throw new ConflictException("The round is not accepting cashouts");
     }
 
@@ -262,8 +271,15 @@ export class GameCommandService {
     }
 
     const occurredAt = new Date(envelope.occurredAt);
+    const activeRound = await this.openBettingIfFirstDebitSucceeded({
+      round,
+      occurredAt,
+    });
 
-    if (occurredAt.getTime() < round.startsAt.getTime()) {
+    if (
+      activeRound.startsAt !== null &&
+      occurredAt.getTime() < activeRound.startsAt.getTime()
+    ) {
       const acceptResult = bet.accept(occurredAt);
 
       if (!acceptResult.success) {
@@ -467,7 +483,7 @@ export class GameCommandService {
     occurredAt: Date;
     publishSnapshot?: boolean;
     publishHistory?: boolean;
-  }): Promise<void> {
+  }): Promise<Round> {
     const roundEvents = params.round.pullDomainEvents();
     const updatedRoundResult = await this.roundRepository.update(params.round);
 
@@ -488,6 +504,37 @@ export class GameCommandService {
     if (params.publishHistory) {
       await this.gameRealtimePublisher.publishHistoryUpdated();
     }
+
+    return updatedRoundResult.data!;
+  }
+
+  private async openBettingIfFirstDebitSucceeded(params: {
+    round: Round;
+    occurredAt: Date;
+  }): Promise<Round> {
+    if (!params.round.isWaitingForFirstBet) {
+      return params.round;
+    }
+
+    const openResult = params.round.openBettingFromFirstAcceptedBet({
+      openedAt: params.occurredAt,
+      bettingWindowInSeconds: BETTING_WINDOW_IN_SECONDS,
+      startDelayInMs: ROUND_START_DELAY_IN_MS,
+      roundDurationInMs: this.roundTimingStrategy.calculateDurationInMs(
+        params.round.crashPoint,
+      ),
+      crashRevealInMs: ROUND_CRASH_REVEAL_IN_MS,
+    });
+
+    if (!openResult.success) {
+      throw new ConflictException(openResult.error.message);
+    }
+
+    return this.persistRoundMutation({
+      round: params.round,
+      occurredAt: params.occurredAt,
+      publishSnapshot: true,
+    });
   }
 
   private async getActiveRound(at: Date): Promise<Round> {

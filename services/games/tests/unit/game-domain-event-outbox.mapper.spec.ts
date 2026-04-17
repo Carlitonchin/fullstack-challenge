@@ -21,10 +21,6 @@ describe("GameDomainEventOutboxMapper", () => {
         roundId: "round-1",
         occurredAt,
         crashPoint: 2.45,
-        bettingClosesAt: new Date("2026-04-16T02:30:10.000Z"),
-        startsAt: new Date("2026-04-16T02:30:10.500Z"),
-        scheduledCrashAt: new Date("2026-04-16T02:30:12.500Z"),
-        settlesAt: new Date("2026-04-16T02:30:14.500Z"),
         provablyFairStrategyId: "strategy-1",
         nonce: "nonce-1",
         serverSeedHash: "hash-1",
@@ -41,6 +37,41 @@ describe("GameDomainEventOutboxMapper", () => {
     expect(message.payload.data).toMatchObject({
       roundId: "round-1",
       serverSeedHash: "hash-1",
+    });
+    expect(message.payload.data).not.toHaveProperty("bettingClosesAt");
+  });
+
+  it("maps betting-opened round events with the real schedule", () => {
+    const mapper = new GameDomainEventOutboxMapper();
+    const occurredAt = new Date("2026-04-16T02:30:00.000Z");
+    const persistedAt = new Date("2026-04-16T02:30:01.000Z");
+
+    const message = mapper.mapRoundEvent({
+      outboxId: "outbox-4",
+      persistedAt,
+      event: {
+        type: "round.betting-opened",
+        roundId: "round-1",
+        occurredAt,
+        bettingOpenedAt: occurredAt,
+        bettingClosesAt: new Date("2026-04-16T02:30:10.000Z"),
+        startsAt: new Date("2026-04-16T02:30:40.000Z"),
+        scheduledCrashAt: new Date("2026-04-16T02:30:42.500Z"),
+        settlesAt: new Date("2026-04-16T02:30:44.500Z"),
+      },
+    });
+
+    expect(message).toMatchObject({
+      aggregateType: "round",
+      aggregateId: "round-1",
+      eventType: "round.betting-opened",
+      routingKey: "round.betting-opened",
+      idempotencyKey: "round.betting-opened:round-1",
+    });
+    expect(message.payload.data).toMatchObject({
+      roundId: "round-1",
+      bettingOpenedAt: "2026-04-16T02:30:00.000Z",
+      bettingClosesAt: "2026-04-16T02:30:10.000Z",
     });
   });
 

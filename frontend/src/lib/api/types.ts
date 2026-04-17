@@ -1,4 +1,5 @@
 export type RoundStatus =
+  | "WAITING_FOR_FIRST_BET"
   | "BETTING_OPEN"
   | "BETTING_CLOSED"
   | "IN_PROGRESS"
@@ -25,12 +26,12 @@ export interface RoundCurve {
 export interface Round {
   id: string
   status: RoundStatus
-  bettingOpenedAt: string
-  bettingClosesAt: string
-  startsAt: string
+  bettingOpenedAt: string | null
+  bettingClosesAt: string | null
+  startsAt: string | null
   startedAt: string | null
   scheduledCrashAt: string | null
-  settlesAt: string
+  settlesAt: string | null
   crashedAt: string | null
   currentMultiplier: number
   curve: RoundCurve

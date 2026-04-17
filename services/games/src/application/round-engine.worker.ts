@@ -9,7 +9,7 @@ import { PostgresOutboxRepository } from "@crash/messaging";
 import { GameOutboxService } from "@games/application/game-outbox.service";
 import { GameRealtimePublisher } from "@games/application/game-realtime.publisher";
 import { RoundFactoryService } from "@games/application/round-factory.service";
-import { Round } from "@games/domain/round/round";
+import { Round, RoundStatus } from "@games/domain/round/round";
 import { NEXT_ROUND_DELAY_IN_MS } from "@games/domain/round/round-timing.strategy";
 import { BetRepository } from "@games/infrastructure/repository/bet.repository";
 import { RoundRepository } from "@games/infrastructure/repository/round.repository";
@@ -161,6 +161,10 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
           }
 
           if (currentRound.shouldCloseBetting(now)) {
+            if (currentRound.bettingClosesAt === null) {
+              throw new Error("Betting close time is missing");
+            }
+
             const closedAt = new Date(
               Math.max(now.getTime(), currentRound.bettingClosesAt.getTime()),
             );
@@ -181,6 +185,10 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
           }
 
           if (currentRound.shouldStart(now)) {
+            if (currentRound.startsAt === null) {
+              throw new Error("Round start time is missing");
+            }
+
             const startedAt = new Date(
               Math.max(now.getTime(), currentRound.startsAt.getTime()),
             );
@@ -201,6 +209,10 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
           }
 
           if (currentRound.shouldCrash(now)) {
+            if (currentRound.scheduledCrashAt === null) {
+              throw new Error("Scheduled crash time is missing");
+            }
+
             const crashedAt = new Date(
               Math.max(now.getTime(), currentRound.scheduledCrashAt.getTime()),
             );
@@ -227,12 +239,16 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
           }
 
           if (currentRound.shouldSettle(now)) {
+            if (currentRound.settlesAt === null) {
+              throw new Error("Round settle time is missing");
+            }
+
             const settledAt = new Date(
               Math.max(now.getTime(), currentRound.settlesAt.getTime()),
             );
             await this.resolveRoundBetsForSettlement({
               roundId: currentRound.id,
-              crashOccurredAt: currentRound.crashedAt ?? currentRound.scheduledCrashAt,
+              crashOccurredAt: currentRound.crashedAt ?? currentRound.scheduledCrashAt!,
               settledAt,
               betRepository,
               outboxRepository,
@@ -395,27 +411,35 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
       return new Date(now.getTime() + ENGINE_RETRY_DELAY_IN_MS);
     }
 
-    if (currentRound.status === "BETTING_OPEN") {
+    if (currentRound.status === RoundStatus.WAITING_FOR_FIRST_BET) {
+      return new Date(now.getTime() + ENGINE_RETRY_DELAY_IN_MS);
+    }
+
+    if (currentRound.status === RoundStatus.BETTING_OPEN) {
       return currentRound.bettingClosesAt;
     }
 
-    if (currentRound.status === "BETTING_CLOSED") {
+    if (currentRound.status === RoundStatus.BETTING_CLOSED) {
       return currentRound.startsAt;
     }
 
-    if (currentRound.status === "IN_PROGRESS") {
+    if (currentRound.status === RoundStatus.IN_PROGRESS) {
       return currentRound.scheduledCrashAt;
     }
 
-    if (currentRound.status === "CRASHED") {
+    if (currentRound.status === RoundStatus.CRASHED) {
       return currentRound.settlesAt;
     }
 
-    if (currentRound.status === "ERROR") {
+    if (currentRound.status === RoundStatus.ERROR) {
       return null;
     }
 
-    if (currentRound.status === "SETTLED") {
+    if (currentRound.status === RoundStatus.SETTLED) {
+      if (currentRound.settlesAt === null) {
+        return new Date(now.getTime() + ENGINE_RETRY_DELAY_IN_MS);
+      }
+
       return new Date(currentRound.settlesAt.getTime() + NEXT_ROUND_DELAY_IN_MS);
     }
 
