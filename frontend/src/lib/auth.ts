@@ -434,8 +434,9 @@ export async function ensureValidAccessToken(): Promise<string> {
     return session.accessToken
   }
 
-  const refreshedSession = await refreshAuthSession()
-  return refreshedSession.accessToken
+  /*const refreshedSession = await refreshAuthSession()
+  return refreshedSession.accessToken*/
+  return ""
 }
 
 export function redirectToLogin(redirectPath = window.location.pathname + window.location.search + window.location.hash) {

@@ -19,8 +19,7 @@ const WALLET_QUERY_KEY = ["wallet"] as const
 export function useCurrentGameSnapshot() {
   return useQuery({
     queryKey: SNAPSHOT_QUERY_KEY,
-    queryFn: fetchCurrentSnapshot,
-    refetchInterval: 5_000,
+    queryFn: fetchCurrentSnapshot
   })
 }
 
@@ -34,8 +33,7 @@ export function useRoundHistory() {
 export function useWallet() {
   return useQuery({
     queryKey: WALLET_QUERY_KEY,
-    queryFn: fetchWallet,
-    refetchInterval: 5_000,
+    queryFn: fetchWallet
   })
 }
 
@@ -50,8 +48,7 @@ export function usePlayer() {
 export function useMyBets() {
   return useQuery({
     queryKey: MY_BETS_QUERY_KEY,
-    queryFn: fetchMyBets,
-    refetchInterval: 5_000,
+    queryFn: fetchMyBets
   })
 }
 

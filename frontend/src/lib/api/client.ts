@@ -90,7 +90,7 @@ async function sendRequest<T>(
 
   if (auth && response.status === 401 && !retried) {
     try {
-      await refreshAuthSession()
+      // await refreshAuthSession()
       return sendRequest<T>(path, { method, auth, body }, true)
     } catch {
       redirectToLogin()
