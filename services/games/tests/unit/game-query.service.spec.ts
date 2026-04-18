@@ -164,6 +164,11 @@ describe("GameQueryService", () => {
         success: true,
         data: [previousRound],
       }),
+      findSettledRoundsPage: async () => ({
+        success: true,
+        data: [previousRound],
+      }),
+      countSettledRounds: async () => ({ success: true, data: 1 }),
       persist: async () => ({ success: true, data: currentRound }),
       update: async () => ({ success: true, data: currentRound }),
     };
@@ -174,6 +179,8 @@ describe("GameQueryService", () => {
         data: roundId === currentRound.id ? [currentBet] : [],
       }),
       findByPlayerId: async () => ({ success: true, data: [currentBet] }),
+      findPageByPlayerId: async () => ({ success: true, data: [currentBet] }),
+      countByPlayerId: async () => ({ success: true, data: 1 }),
       findById: async (id) => ({
         success: true,
         data: id === currentBet.id ? currentBet : undefined,

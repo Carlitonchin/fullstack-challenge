@@ -19,6 +19,11 @@ export interface IRoundRepository {
   findCurrentRound(): Promise<RoundRepositoryResult<Round | undefined>>;
   findById(id: string): Promise<RoundRepositoryResult<Round | undefined>>;
   findRecentSettledRounds(limit: number): Promise<RoundRepositoryResult<Round[]>>;
+  findSettledRoundsPage(
+    limit: number,
+    offset: number,
+  ): Promise<RoundRepositoryResult<Round[]>>;
+  countSettledRounds(): Promise<RoundRepositoryResult<number>>;
   persist(round: Round): Promise<RoundRepositoryResult<Round>>;
   update(round: Round): Promise<RoundRepositoryResult<Round>>;
 }

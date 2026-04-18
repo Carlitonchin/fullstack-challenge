@@ -21,6 +21,12 @@ export interface IBetRepository {
   ): Promise<BetRepositoryResult<Bet | undefined>>;
   findByRoundId(roundId: string): Promise<BetRepositoryResult<Bet[]>>;
   findByPlayerId(playerId: string): Promise<BetRepositoryResult<Bet[]>>;
+  findPageByPlayerId(
+    playerId: string,
+    limit: number,
+    offset: number,
+  ): Promise<BetRepositoryResult<Bet[]>>;
+  countByPlayerId(playerId: string): Promise<BetRepositoryResult<number>>;
   findById(id: string): Promise<BetRepositoryResult<Bet | undefined>>;
   persist(bet: Bet): Promise<BetRepositoryResult<Bet>>;
   update(bet: Bet): Promise<BetRepositoryResult<Bet>>;

@@ -6,6 +6,7 @@ export {
   type WalletBalanceUpdated,
   type Player,
   type RoundHistoryEntry,
+  type PaginatedResponse,
   type RoundVerification,
   type RoundStatus,
   type BetStatus,

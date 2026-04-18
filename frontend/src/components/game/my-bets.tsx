@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react"
 import {
   Card,
   CardContent,
@@ -7,16 +8,25 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
 import { formatCents, formatMultiplier, formatTimeAgo } from "@/lib/format"
 import type { Bet } from "@/lib/api"
 
 interface MyBetsProps {
   bets: Bet[] | undefined
   isLoading: boolean
+  hasNextPage: boolean | undefined
+  isFetchingNextPage: boolean
+  onLoadMore: () => void
 }
 
-export function MyBets({ bets, isLoading }: MyBetsProps) {
+export function MyBets({
+  bets,
+  isLoading,
+  hasNextPage,
+  isFetchingNextPage,
+  onLoadMore,
+}: MyBetsProps) {
   if (isLoading) {
     return (
       <Card>
@@ -33,12 +43,6 @@ export function MyBets({ bets, isLoading }: MyBetsProps) {
   }
 
   const allBets = bets ?? []
-  const openBets = allBets.filter((bet) =>
-    ["PENDING", "ACCEPTED", "CASHED_OUT"].includes(bet.status),
-  )
-  const resolvedBets = allBets.filter((bet) =>
-    ["LOST", "SETTLED", "REJECTED"].includes(bet.status),
-  )
 
   return (
     <Card>
@@ -46,37 +50,58 @@ export function MyBets({ bets, isLoading }: MyBetsProps) {
         <CardTitle className="text-sm">My Bets</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <Tabs defaultValue="all" className="w-full">
-          <div className="px-4">
-            <TabsList className="w-full">
-              <TabsTrigger value="all" className="flex-1 text-xs">
-                All ({allBets.length})
-              </TabsTrigger>
-              <TabsTrigger value="open" className="flex-1 text-xs">
-                Open ({openBets.length})
-              </TabsTrigger>
-              <TabsTrigger value="resolved" className="flex-1 text-xs">
-                Resolved ({resolvedBets.length})
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent value="all" className="mt-0">
-            <BetList bets={allBets} />
-          </TabsContent>
-          <TabsContent value="open" className="mt-0">
-            <BetList bets={openBets} />
-          </TabsContent>
-          <TabsContent value="resolved" className="mt-0">
-            <BetList bets={resolvedBets} />
-          </TabsContent>
-        </Tabs>
+        <BetList
+          bets={allBets}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          onLoadMore={onLoadMore}
+        />
       </CardContent>
     </Card>
   )
 }
 
-function BetList({ bets }: { bets: Bet[] }) {
+function BetList({
+  bets,
+  hasNextPage,
+  isFetchingNextPage,
+  onLoadMore,
+}: {
+  bets: Bet[]
+  hasNextPage: boolean | undefined
+  isFetchingNextPage: boolean
+  onLoadMore: () => void
+}) {
+  const scrollRootRef = useRef<HTMLDivElement | null>(null)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const rootElement = scrollRootRef.current?.querySelector(
+      '[data-slot="scroll-area-viewport"]',
+    )
+    const sentinelElement = sentinelRef.current
+
+    if (!rootElement || !sentinelElement || !hasNextPage) {
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting) && !isFetchingNextPage) {
+          onLoadMore()
+        }
+      },
+      {
+        root: rootElement,
+        rootMargin: "120px 0px",
+      },
+    )
+
+    observer.observe(sentinelElement)
+
+    return () => observer.disconnect()
+  }, [hasNextPage, isFetchingNextPage, onLoadMore])
+
   if (bets.length === 0) {
     return (
       <p className="py-8 text-center text-xs text-muted-foreground">
@@ -86,7 +111,7 @@ function BetList({ bets }: { bets: Bet[] }) {
   }
 
   return (
-    <ScrollArea className="h-[240px]">
+    <ScrollArea className="h-[240px]" ref={scrollRootRef}>
       <div className="flex flex-col gap-1 p-4 pt-2">
         {bets.map((bet) => (
           <div
@@ -106,6 +131,21 @@ function BetList({ bets }: { bets: Bet[] }) {
             <BetValue bet={bet} />
           </div>
         ))}
+
+        <div ref={sentinelRef} className="h-1 w-full" />
+
+        {hasNextPage ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-2 w-full text-xs"
+            onClick={onLoadMore}
+            disabled={isFetchingNextPage}
+          >
+            {isFetchingNextPage ? "Loading more…" : "Load more"}
+          </Button>
+        ) : null}
       </div>
     </ScrollArea>
   )

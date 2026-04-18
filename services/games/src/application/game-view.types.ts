@@ -2,6 +2,7 @@ import type { BetStatus } from "@games/domain/bet/bet";
 import type { RoundStatus } from "@games/domain/round/round";
 import type { ProvablyFairVerificationStep } from "@games/domain/provably-fair/provably-fair-strategy-definition";
 import type { PublicRoundCurve } from "@games/domain/round/round-timing.strategy";
+import type { PaginatedResponse } from "./paginated-response";
 
 export type GameRoundCurveView = PublicRoundCurve;
 
@@ -98,6 +99,11 @@ export type GameRoundHistoryEntryView = {
   serverSeedHash: string;
   playerCount: number;
 };
+
+export type PaginatedGameRoundHistoryView =
+  PaginatedResponse<GameRoundHistoryEntryView>;
+
+export type PaginatedGameBetView = PaginatedResponse<GameBetView>;
 
 export type GameCashOutResponseView = {
   multiplier: number;

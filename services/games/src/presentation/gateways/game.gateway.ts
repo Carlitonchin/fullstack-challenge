@@ -10,7 +10,6 @@ import { GameQueryService } from "@games/application/game-query.service";
 import type {
   CurrentGameSnapshotView,
   GameBetView,
-  GameRoundHistoryEntryView,
   WalletBalanceUpdatedView,
 } from "@games/application/game-view.types";
 import { KeycloakJwtVerifier } from "@games/presentation/auth/keycloak-jwt.verifier";
@@ -41,18 +40,12 @@ export class GameGateway implements OnGatewayConnection {
       return;
     }
 
-    const { snapshot, history } = await RequestContext.create(
+    const snapshot = await RequestContext.create(
       this.orm.em,
-      async () => {
-        const snapshot = await this.gameQueryService.getCurrentSnapshot();
-        const history = await this.gameQueryService.getRoundHistory();
-
-        return { snapshot, history };
-      },
+      async () => this.gameQueryService.getCurrentSnapshot(),
     );
 
     client.emit("game.snapshot", snapshot);
-    client.emit("history.updated", history);
   }
 
   emitGameSnapshot(snapshot: CurrentGameSnapshotView): void {
@@ -63,8 +56,8 @@ export class GameGateway implements OnGatewayConnection {
     this.server.emit("bet.updated", bet);
   }
 
-  emitHistoryUpdated(history: GameRoundHistoryEntryView[]): void {
-    this.server.emit("history.updated", history);
+  emitHistoryUpdated(): void {
+    this.server.emit("history.updated");
   }
 
   emitWalletBalanceUpdated(

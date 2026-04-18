@@ -32,16 +32,19 @@ import {
   type BetRepositoryError,
   type IBetRepository,
 } from "@games/port/bet.repository";
+import {
+  buildPaginatedResponse,
+} from "./paginated-response";
 import type {
   CurrentGameSnapshotView,
   GameBetView,
   GameRoundFairnessView,
   GameRoundHistoryEntryView,
   GameRoundView,
+  PaginatedGameBetView,
+  PaginatedGameRoundHistoryView,
   PreviousRoundProofView,
 } from "./game-view.types";
-
-const HISTORY_LIMIT = 20;
 const PREVIOUS_ROUND_PROOF_LIMIT = 2;
 
 @Injectable()
@@ -90,14 +93,25 @@ export class GameQueryService {
     };
   }
 
-  async getRoundHistory(): Promise<GameRoundHistoryEntryView[]> {
-    const roundsResult = await this.roundRepository.findRecentSettledRounds(
-      HISTORY_LIMIT,
-    );
+  async getRoundHistory(params: {
+    page: number;
+    limit: number;
+    offset: number;
+  }): Promise<PaginatedGameRoundHistoryView> {
+    const [roundsResult, totalRoundsResult] = await Promise.all([
+      this.roundRepository.findSettledRoundsPage(params.limit, params.offset),
+      this.roundRepository.countSettledRounds(),
+    ]);
 
     if (!roundsResult.success) {
       throw new InternalServerErrorException(
         getRepositoryErrorMessage(roundsResult.error),
+      );
+    }
+
+    if (!totalRoundsResult.success) {
+      throw new InternalServerErrorException(
+        getRepositoryErrorMessage(totalRoundsResult.error),
       );
     }
 
@@ -119,21 +133,46 @@ export class GameQueryService {
       });
     }
 
-    return historyEntries;
+    return buildPaginatedResponse({
+      items: historyEntries,
+      page: params.page,
+      limit: params.limit,
+      totalItems: totalRoundsResult.data,
+    });
   }
 
-  async getMyBets(playerId: string): Promise<GameBetView[]> {
+  async getMyBets(
+    playerId: string,
+    params: {
+      page: number;
+      limit: number;
+      offset: number;
+    },
+  ): Promise<PaginatedGameBetView> {
     const normalizedPlayerId = playerId.trim();
 
     if (!normalizedPlayerId) {
       throw new InternalServerErrorException("Authenticated player id is missing");
     }
 
-    const betsResult = await this.betRepository.findByPlayerId(normalizedPlayerId);
+    const [betsResult, totalBetsResult] = await Promise.all([
+      this.betRepository.findPageByPlayerId(
+        normalizedPlayerId,
+        params.limit,
+        params.offset,
+      ),
+      this.betRepository.countByPlayerId(normalizedPlayerId),
+    ]);
 
     if (!betsResult.success) {
       throw new InternalServerErrorException(
         getRepositoryErrorMessage(betsResult.error),
+      );
+    }
+
+    if (!totalBetsResult.success) {
+      throw new InternalServerErrorException(
+        getRepositoryErrorMessage(totalBetsResult.error),
       );
     }
 
@@ -157,7 +196,12 @@ export class GameQueryService {
       );
     }
 
-    return betViews;
+    return buildPaginatedResponse({
+      items: betViews,
+      page: params.page,
+      limit: params.limit,
+      totalItems: totalBetsResult.data,
+    });
   }
 
   async getBetById(betId: string): Promise<GameBetView | null> {

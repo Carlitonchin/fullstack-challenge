@@ -8,6 +8,7 @@ import type {
   Bet,
   CashOutResponse,
   CurrentGameSnapshot,
+  PaginatedResponse,
   Player,
   RoundHistoryEntry,
   RoundVerification,
@@ -36,6 +37,11 @@ type WalletResponse = {
   id: string
   playerId: string
   balanceInCents: string
+}
+
+type PaginationParams = {
+  page?: number
+  limit?: number
 }
 
 export function getApiBaseUrl(): string {
@@ -127,8 +133,12 @@ export async function fetchCurrentSnapshot(): Promise<CurrentGameSnapshot> {
   return sendRequest<CurrentGameSnapshot>("/games/rounds/current")
 }
 
-export async function fetchRoundHistory(): Promise<RoundHistoryEntry[]> {
-  return sendRequest<RoundHistoryEntry[]>("/games/rounds/history")
+export async function fetchRoundHistory(
+  params: PaginationParams,
+): Promise<PaginatedResponse<RoundHistoryEntry>> {
+  return sendRequest<PaginatedResponse<RoundHistoryEntry>>(
+    `/games/rounds/history${buildPaginationQuery(params)}`,
+  )
 }
 
 export async function fetchWallet(): Promise<Wallet | null> {
@@ -169,10 +179,15 @@ export async function fetchPlayer(): Promise<Player> {
   }
 }
 
-export async function fetchMyBets(): Promise<Bet[]> {
-  return sendRequest<Bet[]>("/games/bets/me", {
+export async function fetchMyBets(
+  params: PaginationParams,
+): Promise<PaginatedResponse<Bet>> {
+  return sendRequest<PaginatedResponse<Bet>>(
+    `/games/bets/me${buildPaginationQuery(params)}`,
+    {
     auth: true,
-  })
+    },
+  )
 }
 
 export async function placeBet(amountInCents: number): Promise<Bet> {
@@ -196,4 +211,20 @@ export async function fetchRoundVerification(
   roundId: string,
 ): Promise<RoundVerification> {
   return sendRequest<RoundVerification>(`/games/rounds/${roundId}/verify`)
+}
+
+function buildPaginationQuery({ page, limit }: PaginationParams): string {
+  const searchParams = new URLSearchParams()
+
+  if (page !== undefined) {
+    searchParams.set("page", String(page))
+  }
+
+  if (limit !== undefined) {
+    searchParams.set("limit", String(limit))
+  }
+
+  const serializedParams = searchParams.toString()
+
+  return serializedParams ? `?${serializedParams}` : ""
 }

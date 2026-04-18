@@ -1,5 +1,9 @@
 import { useEffect } from "react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query"
 import { io } from "socket.io-client"
 import {
   fetchCurrentSnapshot,
@@ -12,7 +16,6 @@ import {
 import type {
   Bet,
   CurrentGameSnapshot,
-  RoundHistoryEntry,
   Wallet,
   WalletBalanceUpdated,
 } from "@/lib/api"
@@ -22,25 +25,26 @@ const SNAPSHOT_QUERY_KEY = ["game", "snapshot"] as const
 const HISTORY_QUERY_KEY = ["game", "history"] as const
 const MY_BETS_QUERY_KEY = ["bets", "mine"] as const
 const WALLET_QUERY_KEY = ["wallet"] as const
+const DEFAULT_PAGE_SIZE = 20
 
 export function useCurrentGameSnapshot() {
   return useQuery({
     queryKey: SNAPSHOT_QUERY_KEY,
-    queryFn: fetchCurrentSnapshot
+    queryFn: fetchCurrentSnapshot,
   })
 }
 
-export function useRoundHistory() {
+export function useRoundHistory(page: number, limit = DEFAULT_PAGE_SIZE) {
   return useQuery({
-    queryKey: HISTORY_QUERY_KEY,
-    queryFn: fetchRoundHistory,
+    queryKey: [...HISTORY_QUERY_KEY, page, limit],
+    queryFn: () => fetchRoundHistory({ page, limit }),
   })
 }
 
 export function useWallet() {
   return useQuery({
     queryKey: WALLET_QUERY_KEY,
-    queryFn: fetchWallet
+    queryFn: fetchWallet,
   })
 }
 
@@ -53,9 +57,13 @@ export function usePlayer() {
 }
 
 export function useMyBets() {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: MY_BETS_QUERY_KEY,
-    queryFn: fetchMyBets
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      fetchMyBets({ page: pageParam, limit: DEFAULT_PAGE_SIZE }),
+    getNextPageParam: (lastPage) =>
+      lastPage.hasNextPage ? lastPage.page + 1 : undefined,
   })
 }
 
@@ -99,12 +107,7 @@ export function useGameRealtime(playerId?: string) {
       )
 
       if (playerId && bet.playerId === playerId) {
-        queryClient.setQueryData<Bet[] | undefined>(MY_BETS_QUERY_KEY, (current) => {
-          const nextBets = (current ?? []).filter((item) => item.id !== bet.id)
-          return [bet, ...nextBets].sort((left, right) =>
-            right.createdAt.localeCompare(left.createdAt),
-          )
-        })
+        void queryClient.invalidateQueries({ queryKey: MY_BETS_QUERY_KEY })
       }
     }
 
@@ -175,8 +178,8 @@ export function useGameRealtime(playerId?: string) {
         queryClient.setQueryData(SNAPSHOT_QUERY_KEY, snapshot)
       })
 
-      socket.on("history.updated", (history: RoundHistoryEntry[]) => {
-        queryClient.setQueryData(HISTORY_QUERY_KEY, history)
+      socket.on("history.updated", () => {
+        void queryClient.invalidateQueries({ queryKey: HISTORY_QUERY_KEY })
       })
 
       socket.on("bet.updated", applyBetUpdated)

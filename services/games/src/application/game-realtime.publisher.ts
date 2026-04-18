@@ -43,10 +43,7 @@ export class GameRealtimePublisher {
   }
 
   async publishHistoryUpdated(): Promise<void> {
-    const history = await RequestContext.create(this.orm.em, async () =>
-      this.gameQueryService.getRoundHistory(),
-    );
-    this.gameGateway.emitHistoryUpdated(history);
+    this.gameGateway.emitHistoryUpdated();
   }
 
   private async findBetView(betId: string) {

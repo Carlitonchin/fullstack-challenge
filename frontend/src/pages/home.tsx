@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import {
   CrashChart,
   BetControls,
@@ -19,7 +20,7 @@ import { logoutToLogin } from "@/lib/auth"
 
 export default function HomePage() {
   const snapshotQuery = useCurrentGameSnapshot()
-  const historyQuery = useRoundHistory()
+  const historyQuery = useRoundHistory(1, 20)
   const walletQuery = useWallet()
   const playerQuery = usePlayer()
   const myBetsQuery = useMyBets()
@@ -27,6 +28,10 @@ export default function HomePage() {
 
   const currentRound = snapshotQuery.data?.round ?? undefined
   const currentBets = snapshotQuery.data?.bets
+  const myBets = useMemo(
+    () => myBetsQuery.data?.pages.flatMap((page) => page.items) ?? [],
+    [myBetsQuery.data],
+  )
 
   return (
     <div className="relative min-h-svh bg-background">
@@ -72,7 +77,7 @@ export default function HomePage() {
       <div className="relative z-10 border-b border-border/30 bg-card/30 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 py-2 lg:px-6">
           <RoundHistory
-            rounds={historyQuery.data}
+            rounds={historyQuery.data?.items}
             isLoading={historyQuery.isLoading}
           />
         </div>
@@ -97,7 +102,7 @@ export default function HomePage() {
             <BetControls
               round={currentRound}
               serverTime={snapshotQuery.data?.serverTime}
-              myBets={myBetsQuery.data}
+              myBets={myBets}
               wallet={walletQuery.data}
               isLoadingRound={snapshotQuery.isLoading}
               isLoadingWallet={walletQuery.isLoading}
@@ -105,8 +110,11 @@ export default function HomePage() {
             />
 
             <MyBets
-              bets={myBetsQuery.data}
+              bets={myBets}
               isLoading={myBetsQuery.isLoading}
+              hasNextPage={myBetsQuery.hasNextPage}
+              isFetchingNextPage={myBetsQuery.isFetchingNextPage}
+              onLoadMore={() => void myBetsQuery.fetchNextPage()}
             />
 
             <CurrentBets

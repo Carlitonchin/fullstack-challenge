@@ -50,12 +50,35 @@ export class RoundRepository implements IRoundRepository {
   async findRecentSettledRounds(
     limit: number,
   ): Promise<RoundRepositoryResult<Round[]>> {
+    return this.findSettledRounds(limit, 0);
+  }
+
+  async findSettledRoundsPage(
+    limit: number,
+    offset: number,
+  ): Promise<RoundRepositoryResult<Round[]>> {
+    return this.findSettledRounds(limit, offset);
+  }
+
+  async countSettledRounds(): Promise<RoundRepositoryResult<number>> {
+    const total = await this.em.count(RoundSchema, {
+      status: RoundStatusType.SETTLED,
+    });
+
+    return RoundRepository.success(total);
+  }
+
+  private async findSettledRounds(
+    limit: number,
+    offset: number,
+  ): Promise<RoundRepositoryResult<Round[]>> {
     const records = await this.em.find(
       RoundSchema,
       { status: RoundStatusType.SETTLED },
       {
         orderBy: { createdAt: "desc" },
         limit,
+        offset,
         populate: ["provablyFairStrategy"],
       },
     );

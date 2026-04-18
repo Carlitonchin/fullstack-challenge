@@ -90,6 +90,8 @@ function createService(params: {
       data: id === params.round.id ? params.round : undefined,
     }),
     findRecentSettledRounds: async () => ({ success: true, data: [] }),
+    findSettledRoundsPage: async () => ({ success: true, data: [] }),
+    countSettledRounds: async () => ({ success: true, data: 0 }),
     persist: async (round: Round) => ({ success: true, data: round }),
     update: async (round: Round) => {
       params.round = round.withVersion(round.version + 1);
@@ -103,6 +105,8 @@ function createService(params: {
     }),
     findByRoundId: async () => ({ success: true, data: [params.bet] }),
     findByPlayerId: async () => ({ success: true, data: [params.bet] }),
+    findPageByPlayerId: async () => ({ success: true, data: [params.bet] }),
+    countByPlayerId: async () => ({ success: true, data: 1 }),
     findById: async (id: string) => ({
       success: true,
       data: id === params.bet.id ? params.bet : undefined,

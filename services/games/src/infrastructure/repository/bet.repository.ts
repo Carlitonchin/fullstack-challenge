@@ -56,10 +56,37 @@ export class BetRepository implements IBetRepository {
   }
 
   async findByPlayerId(playerId: string): Promise<BetRepositoryResult<Bet[]>> {
+    return this.findPlayerBets(playerId);
+  }
+
+  async findPageByPlayerId(
+    playerId: string,
+    limit: number,
+    offset: number,
+  ): Promise<BetRepositoryResult<Bet[]>> {
+    return this.findPlayerBets(playerId, limit, offset);
+  }
+
+  async countByPlayerId(playerId: string): Promise<BetRepositoryResult<number>> {
+    const total = await this.em.count(BetSchema, { playerId });
+
+    return BetRepository.success(total);
+  }
+
+  private async findPlayerBets(
+    playerId: string,
+    limit?: number,
+    offset?: number,
+  ): Promise<BetRepositoryResult<Bet[]>> {
     const records = await this.em.find(
       BetSchema,
       { playerId },
-      { orderBy: { createdAt: "desc" }, populate: ["round"] },
+      {
+        orderBy: { createdAt: "desc" },
+        populate: ["round"],
+        ...(limit === undefined ? {} : { limit }),
+        ...(offset === undefined ? {} : { offset }),
+      },
     );
 
     const bets: Bet[] = [];
@@ -76,7 +103,6 @@ export class BetRepository implements IBetRepository {
 
     return BetRepository.success(bets);
   }
-
   async findById(id: string): Promise<BetRepositoryResult<Bet | undefined>> {
     const record = await this.em.findOne(BetSchema, { id });
 

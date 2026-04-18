@@ -236,11 +236,6 @@ export function CrashChart({ round, serverTime, isLoading }: CrashChartProps) {
             Round {round ? round.id.slice(0, 8) : "—"}
           </span>
         </div>
-        {round?.serverSeedHash && (
-          <code className="text-[10px] text-muted-foreground/60 font-mono">
-            SHA256: {truncateHash(round.serverSeedHash, 8)}
-          </code>
-        )}
       </div>
 
       <CardContent className="relative p-0">

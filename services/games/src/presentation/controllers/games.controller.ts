@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
 } from "@nestjs/common";
@@ -17,6 +18,7 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
@@ -26,11 +28,13 @@ import type {
   CurrentGameSnapshotView,
   GameBetView,
   GameCashOutResponseView,
-  GameRoundHistoryEntryView,
+  PaginatedGameBetView,
+  PaginatedGameRoundHistoryView,
 } from "@games/application/game-view.types";
 import { KeycloakJwtAuthGuard } from "../auth/keycloak-jwt-auth.guard";
 import { HealthCheckResponseDto } from "../dtos/health-check-response.dto";
 import { PlaceBetRequestDto } from "../dtos/place-bet-request.dto";
+import { parsePaginationQuery } from "../http/pagination-query";
 
 type AuthenticatedRequest = {
   user?: {
@@ -66,8 +70,15 @@ export class GamesController {
   @Get("rounds/history")
   @ApiOperation({ summary: "Get recent settled rounds" })
   @ApiOkResponse({ description: "Recent round history entries" })
-  async getRoundHistory(): Promise<GameRoundHistoryEntryView[]> {
-    return this.gameQueryService.getRoundHistory();
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  async getRoundHistory(
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+  ): Promise<PaginatedGameRoundHistoryView> {
+    return this.gameQueryService.getRoundHistory(
+      parsePaginationQuery(page, limit),
+    );
   }
 
   @Get("rounds/:roundId/verify")
@@ -84,8 +95,17 @@ export class GamesController {
   @ApiOperation({ summary: "Get the authenticated player's bets" })
   @ApiOkResponse({ description: "Authenticated player's bets" })
   @ApiUnauthorizedResponse({ description: "Bearer token is missing or invalid" })
-  async getMyBets(@Req() request: AuthenticatedRequest): Promise<GameBetView[]> {
-    return this.gameQueryService.getMyBets(request.user?.sub ?? "");
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  async getMyBets(
+    @Req() request: AuthenticatedRequest,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+  ): Promise<PaginatedGameBetView> {
+    return this.gameQueryService.getMyBets(
+      request.user?.sub ?? "",
+      parsePaginationQuery(page, limit),
+    );
   }
 
   @Post("bets")
