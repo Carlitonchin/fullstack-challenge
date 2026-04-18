@@ -224,12 +224,12 @@ export function RoundTransparencyPanel({
                   Verified
                 </Badge>
               </div>
-<div className="grid grid-cols-5 gap-2 rounded-md bg-muted/20 p-2.5 text-xs">
+              <div className="grid grid-cols-5 gap-2 rounded-md bg-muted/20 p-2.5 text-xs">
                 <div className="col-span-2 flex flex-col gap-0.5">
-                  <span className="text-[9px] text-muted-foreground/60">Round</span>
+                  <span className="text-[9px] text-muted-foreground/60">Nonce</span>
                   <CopyableValue
-                    value={previousRoundProof.roundId.slice(0, 8)}
-                    label={previousRoundProof.roundId}
+                    value={previousRoundProof.nonce}
+                    label={previousRoundProof.nonce}
                   />
                 </div>
                 <div className="col-span-2 flex flex-col gap-0.5">
@@ -237,6 +237,7 @@ export function RoundTransparencyPanel({
                   <CopyableValue
                     value={truncateHash(previousRoundProof.serverSeed, 6)}
                     label={previousRoundProof.serverSeed}
+                    tooltipValue={previousRoundProof.serverSeed}
                   />
                 </div>
                 <div className="flex flex-col gap-0.5">
@@ -340,37 +341,41 @@ function CopyableHash({
   }
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
+    <div className="flex items-center gap-1 leading-none">
+      <span className="text-[10px] leading-none text-muted-foreground/70">{label}:</span>
+      <Tooltip>
+        <TooltipTrigger asChild>
         <button
           type="button"
           onClick={handleCopy}
-          className="flex items-center gap-1 text-left"
+          className="inline-flex w-fit items-center text-left leading-none"
         >
-          <span className="text-[10px] text-muted-foreground/70">{label}:</span>
-          <code className="cursor-pointer text-[10px] font-mono text-chart-1 hover:underline">
+          <code className="cursor-pointer text-[10px] font-mono leading-none text-chart-1 hover:underline">
             {truncateHash(hash, 8)}
           </code>
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side="bottom">
-        <div className="flex flex-col gap-1">
-          <p className="font-mono text-xs break-all">{hash}</p>
-          <p className="text-[10px] text-muted-foreground">
-            {copied ? "✓ Copied!" : "Click to copy"}
-          </p>
-        </div>
-      </TooltipContent>
-    </Tooltip>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <div className="flex flex-col gap-1">
+            <p className="font-mono text-xs break-all">{hash}</p>
+            <p className="text-[10px] text-muted-foreground">
+              {copied ? "✓ Copied!" : "Click to copy"}
+            </p>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </div>
   )
 }
 
 function CopyableValue({
   value,
   label,
+  tooltipValue,
 }: {
   value: string
   label: string
+  tooltipValue?: string
 }) {
   const [copied, setCopied] = useState(false)
 
@@ -387,15 +392,20 @@ function CopyableValue({
         <button
           type="button"
           onClick={handleCopy}
-          className="cursor-pointer text-left hover:underline"
+          className="inline-flex w-fit cursor-pointer items-center text-left leading-none hover:underline"
         >
-          <span className="text-[10px] font-mono text-chart-1">{value}</span>
+          <span className="text-[10px] font-mono leading-none text-chart-1">{value}</span>
         </button>
       </TooltipTrigger>
       <TooltipContent side="bottom">
-        <p className="text-[10px] text-muted-foreground">
-          {copied ? "✓ Copied!" : "Click to copy"}
-        </p>
+        <div className="flex flex-col gap-1">
+          {tooltipValue ? (
+            <p className="font-mono text-xs break-all">{tooltipValue}</p>
+          ) : null}
+          <p className="text-[10px] text-muted-foreground">
+            {copied ? "✓ Copied!" : "Click to copy"}
+          </p>
+        </div>
       </TooltipContent>
     </Tooltip>
   )
