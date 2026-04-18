@@ -90,12 +90,8 @@ export default function HomePage() {
       {/* Main content */}
       <main className="relative z-10 mx-auto max-w-7xl px-4 py-4 lg:px-6 lg:py-6">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6">
-          {/* Chart — spans the wide area */}
-          <div className="space-y-4 lg:col-span-8">
-            <RoundTransparencyPanel
-              round={currentRound}
-              serverTime={snapshotQuery.data?.serverTime}
-            />
+          {/* Chart — aligned with bet controls on the first row */}
+          <div className="lg:col-span-8">
             <CrashChart
               round={currentRound}
               serverTime={snapshotQuery.data?.serverTime}
@@ -115,6 +111,15 @@ export default function HomePage() {
               isLoadingMyBets={myBetsQuery.isLoading}
             />
           </div>
+
+          <div className="lg:col-span-8">
+            <RoundTransparencyPanel
+              round={currentRound}
+              serverTime={snapshotQuery.data?.serverTime}
+            />
+          </div>
+
+          <div className="lg:col-span-4" />
 
           {/* Bottom row: current bets + my bets */}
           <div className="lg:col-span-8">
