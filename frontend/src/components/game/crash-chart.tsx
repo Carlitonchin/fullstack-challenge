@@ -285,7 +285,7 @@ export function CrashChart({ round, serverTime, isLoading }: CrashChartProps) {
                 <Badge variant="outline" className="text-xs">
                   Betting closed
                 </Badge>
-                <span className="font-heading text-4xl font-bold tracking-tighter tabular-nums text-foreground">
+                <span className="font-heading text-5xl font-bold tracking-tighter tabular-nums text-foreground">
                   {presentState.countdownSeconds ?? "—"}s
                 </span>
                 <span className="text-xs uppercase tracking-widest text-muted-foreground">
