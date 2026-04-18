@@ -1,8 +1,51 @@
 import type { BetStatus } from "@games/domain/bet/bet";
 import type { RoundStatus } from "@games/domain/round/round";
+import type { ProvablyFairVerificationStep } from "@games/domain/provably-fair/provably-fair-strategy-definition";
 import type { PublicRoundCurve } from "@games/domain/round/round-timing.strategy";
 
 export type GameRoundCurveView = PublicRoundCurve;
+
+export type GameRoundFairnessCommitmentView = {
+  serverSeedHash: string;
+  isSeedRevealed: boolean;
+};
+
+export type GameRoundFairnessStrategyView = {
+  strategyId: string;
+  strategyDisplayName: string;
+  algorithm: string;
+  hashAlgorithm: string;
+  outcomeAlgorithm: string;
+  houseEdgeDescription: string;
+  verificationFormula: string;
+  verificationSteps: ProvablyFairVerificationStep[];
+};
+
+export type GameRoundFairnessTimelineView = {
+  publishedAt: string;
+  bettingOpenedAt: string | null;
+  bettingClosesAt: string | null;
+  startsAt: string | null;
+  serverTime: string;
+};
+
+export type PreviousRoundProofView = {
+  roundId: string;
+  serverSeedHash: string;
+  serverSeed: string;
+  nonce: string;
+  crashPoint: number;
+  verified: boolean;
+};
+
+export type GameRoundFairnessView = {
+  nonce: string;
+  commitment: GameRoundFairnessCommitmentView;
+  strategy: GameRoundFairnessStrategyView;
+  timeline: GameRoundFairnessTimelineView;
+  curve: GameRoundCurveView;
+  previousRoundProof: PreviousRoundProofView | null;
+};
 
 export type GameBetView = {
   id: string;
@@ -39,6 +82,7 @@ export type GameRoundView = {
   serverSeed: string | null;
   isServerSeedRevealed: boolean;
   playerCount: number;
+  fairness: GameRoundFairnessView;
 };
 
 export type CurrentGameSnapshotView = {

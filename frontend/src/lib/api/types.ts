@@ -23,6 +23,48 @@ export interface RoundCurve {
   precisionDigits: number
 }
 
+export interface FairnessCommitment {
+  serverSeedHash: string
+  isSeedRevealed: boolean
+}
+
+export interface FairnessStrategy {
+  strategyId: string
+  strategyDisplayName: string
+  algorithm: string
+  hashAlgorithm: string
+  outcomeAlgorithm: string
+  houseEdgeDescription: string
+  verificationFormula: string
+  verificationSteps: { order: number; instruction: string }[]
+}
+
+export interface FairnessTimeline {
+  publishedAt: string
+  bettingOpenedAt: string | null
+  bettingClosesAt: string | null
+  startsAt: string | null
+  serverTime: string
+}
+
+export interface PreviousRoundProof {
+  roundId: string
+  serverSeedHash: string
+  serverSeed: string
+  nonce: string
+  crashPoint: number
+  verified: boolean
+}
+
+export interface RoundFairness {
+  nonce: string
+  commitment: FairnessCommitment
+  strategy: FairnessStrategy
+  timeline: FairnessTimeline
+  curve: RoundCurve
+  previousRoundProof: PreviousRoundProof | null
+}
+
 export interface Round {
   id: string
   status: RoundStatus
@@ -40,6 +82,7 @@ export interface Round {
   serverSeed: string | null
   isServerSeedRevealed: boolean
   playerCount: number
+  fairness: RoundFairness
 }
 
 export interface Bet {
@@ -103,6 +146,7 @@ export interface CashOutResponse {
 
 export interface RoundVerification {
   roundId: string
+  publishedAt: string
   strategyId: string
   strategyDisplayName: string
   strategyDescription: string

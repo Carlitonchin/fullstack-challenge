@@ -5,6 +5,9 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { Bet } from "@games/domain/bet/bet";
+import type { ProvablyFairStrategy } from "@games/domain/provably-fair/provably-fair.strategy";
+import { PROVABLY_FAIR_STRATEGY } from "@games/domain/provably-fair/provably-fair.tokens";
+import type { ProvablyFairStrategyDefinition } from "@games/domain/provably-fair/provably-fair-strategy-definition";
 import {
   type Round,
   RoundStatus,
@@ -32,11 +35,14 @@ import {
 import type {
   CurrentGameSnapshotView,
   GameBetView,
+  GameRoundFairnessView,
   GameRoundHistoryEntryView,
   GameRoundView,
+  PreviousRoundProofView,
 } from "./game-view.types";
 
 const HISTORY_LIMIT = 20;
+const PREVIOUS_ROUND_PROOF_LIMIT = 2;
 
 @Injectable()
 export class GameQueryService {
@@ -47,6 +53,8 @@ export class GameQueryService {
     private readonly betRepository: IBetRepository,
     @Inject(PROVABLY_FAIR_STRATEGY_DEFINITION_REPOSITORY)
     private readonly provablyFairStrategyDefinitionRepository: IProvablyFairStrategyDefinitionRepository,
+    @Inject(PROVABLY_FAIR_STRATEGY)
+    private readonly provablyFairStrategy: ProvablyFairStrategy,
     @Inject(ROUND_TIMING_STRATEGY)
     private readonly roundTimingStrategy: RoundTimingStrategy,
   ) {}
@@ -73,9 +81,11 @@ export class GameQueryService {
     const bets = await this.getRoundBets(round.id);
     const publicBets = bets.filter((bet) => isPublicBetStatus(bet.status));
 
+    const fairness = await this.projectRoundFairness(round, at);
+
     return {
       serverTime: at.toISOString(),
-      round: this.mapRound(round, publicBets, at),
+      round: this.mapRound(round, publicBets, at, fairness),
       bets: publicBets.map((bet) => this.mapBet(bet)),
     };
   }
@@ -193,30 +203,13 @@ export class GameQueryService {
       throw new NotFoundException(`Round ${roundId} was not found`);
     }
 
-    const strategyResult =
-      await this.provablyFairStrategyDefinitionRepository.findById(
-        round.provablyFairStrategyId,
-      );
+    const strategy = await this.getStrategyDefinition(round.provablyFairStrategyId);
+    const snapshot = this.projectRoundProvablyFairSnapshot(round, strategy);
 
-    if (!strategyResult.success) {
-      throw new InternalServerErrorException(strategyResult.error.message);
-    }
-
-    const strategy = strategyResult.data;
-
-    if (!strategy) {
-      throw new NotFoundException(
-        `Strategy ${round.provablyFairStrategyId} was not found`,
-      );
-    }
-
-    const snapshotResult = round.projectProvablyFairPublicSnapshot(strategy);
-
-    if (!snapshotResult.success) {
-      throw new InternalServerErrorException(snapshotResult.error.message);
-    }
-
-    return snapshotResult.data!;
+    return {
+      ...snapshot,
+      publishedAt: round.createdAt.toISOString(),
+    };
   }
 
   private async getRoundBets(roundId: string): Promise<Bet[]> {
@@ -231,7 +224,53 @@ export class GameQueryService {
     return betsResult.data;
   }
 
-  private mapRound(round: Round, bets: Bet[], at: Date): GameRoundView {
+  private async projectRoundFairness(
+    round: Round,
+    at: Date,
+  ): Promise<GameRoundFairnessView> {
+    const strategy = await this.getStrategyDefinition(round.provablyFairStrategyId);
+    const previousRoundProof = await this.resolvePreviousRoundProof(round.id);
+    const publicSnapshot = this.projectRoundProvablyFairSnapshot(round, strategy);
+
+    return {
+      nonce: publicSnapshot.nonce,
+      commitment: {
+        serverSeedHash: publicSnapshot.serverSeedHash,
+        isSeedRevealed: publicSnapshot.isServerSeedRevealed,
+      },
+      strategy: {
+        strategyId: publicSnapshot.strategyId,
+        strategyDisplayName: publicSnapshot.strategyDisplayName,
+        algorithm: publicSnapshot.algorithm,
+        hashAlgorithm: publicSnapshot.hashAlgorithm,
+        outcomeAlgorithm: publicSnapshot.outcomeAlgorithm,
+        houseEdgeDescription: publicSnapshot.houseEdgeDescription,
+        verificationFormula: publicSnapshot.verificationFormula,
+        verificationSteps: publicSnapshot.verificationSteps,
+      },
+      timeline: {
+        publishedAt: round.createdAt.toISOString(),
+        bettingOpenedAt: this.resolveBettingOpenedAt(round),
+        bettingClosesAt: round.bettingClosesAt?.toISOString() ?? null,
+        startsAt: round.startsAt?.toISOString() ?? null,
+        serverTime: at.toISOString(),
+      },
+      curve: buildPublicRoundCurve({
+        crashPoint: round.crashPoint,
+        startedAt: round.startedAt ?? round.startsAt ?? round.createdAt,
+        scheduledCrashAt:
+          round.scheduledCrashAt ?? round.startedAt ?? round.startsAt ?? round.createdAt,
+      }),
+      previousRoundProof,
+    };
+  }
+
+  private mapRound(
+    round: Round,
+    bets: Bet[],
+    at: Date,
+    fairness: GameRoundFairnessView,
+  ): GameRoundView {
     return {
       id: round.id,
       status: round.status,
@@ -256,7 +295,91 @@ export class GameQueryService {
       serverSeed: round.isServerSeedRevealed ? round.serverSeed : null,
       isServerSeedRevealed: round.isServerSeedRevealed,
       playerCount: bets.length,
+      fairness,
     };
+  }
+
+  private async resolvePreviousRoundProof(
+    currentRoundId: string,
+  ): Promise<PreviousRoundProofView | null> {
+    const roundsResult = await this.roundRepository.findRecentSettledRounds(
+      PREVIOUS_ROUND_PROOF_LIMIT,
+    );
+
+    if (!roundsResult.success) {
+      throw new InternalServerErrorException(
+        getRepositoryErrorMessage(roundsResult.error),
+      );
+    }
+
+    const previousRound = roundsResult.data.find(
+      (round) => round.id !== currentRoundId && round.isSettled,
+    );
+
+    if (!previousRound || !previousRound.isServerSeedRevealed) {
+      return null;
+    }
+
+    const crashPoint = previousRound.crashMultiplier ?? previousRound.crashPoint;
+
+    return {
+      roundId: previousRound.id,
+      serverSeedHash: previousRound.serverSeedHash,
+      serverSeed: previousRound.serverSeed,
+      nonce: previousRound.nonce,
+      crashPoint,
+      verified: this.verifyRoundProof(previousRound, crashPoint),
+    };
+  }
+
+  private verifyRoundProof(round: Round, expectedCrashPoint: number): boolean {
+    if (!round.isServerSeedRevealed) {
+      return false;
+    }
+
+    if (this.provablyFairStrategy.definition.id !== round.provablyFairStrategyId) {
+      return false;
+    }
+
+    return this.provablyFairStrategy.verify(
+      {
+        serverSeed: round.serverSeed,
+        nonce: round.nonce,
+      },
+      expectedCrashPoint,
+    );
+  }
+
+  private async getStrategyDefinition(
+    strategyId: string,
+  ): Promise<ProvablyFairStrategyDefinition> {
+    const strategyResult =
+      await this.provablyFairStrategyDefinitionRepository.findById(strategyId);
+
+    if (!strategyResult.success) {
+      throw new InternalServerErrorException(strategyResult.error.message);
+    }
+
+    const strategy = strategyResult.data;
+
+    if (!strategy) {
+      throw new NotFoundException(`Strategy ${strategyId} was not found`);
+    }
+
+    return strategy;
+  }
+
+  private projectRoundProvablyFairSnapshot(
+    round: Round,
+    strategy: ProvablyFairStrategyDefinition,
+  ) {
+    const snapshotResult = round.projectProvablyFairPublicSnapshot(strategy);
+
+    if (!snapshotResult.success) {
+      throw new InternalServerErrorException(snapshotResult.error.message);
+    }
+
+    return snapshotResult.data!;
   }
 
   private resolveMultiplier(round: Round, at: Date): number {
