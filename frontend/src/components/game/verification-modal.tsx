@@ -178,12 +178,6 @@ function DataSection({
             }
           />
         )}
-        {verification.crashMultiplier !== null && (
-          <DataRow
-            label="Crash Multiplier"
-            value={formatMultiplier(verification.crashMultiplier)}
-          />
-        )}
       </div>
     </div>
   )
