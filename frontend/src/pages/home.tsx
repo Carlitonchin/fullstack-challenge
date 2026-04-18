@@ -53,7 +53,7 @@ export default function HomePage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 lg:px-6">
           {/* Brand */}
           <div className="flex items-center gap-3">
-            <div className="flex h-14 w-24 items-center justify-center rounded-xl bg-primary/10 px-3 ring-1 ring-primary/20">
+            <div className="flex h-11 w-20 items-center justify-center rounded-lg bg-primary/[0.08] px-2 ring-1 ring-primary/[0.15]">
               <img
                 src="/icon.png"
                 alt="Crash Game"
@@ -87,15 +87,19 @@ export default function HomePage() {
       <main className="relative z-10 mx-auto max-w-7xl px-4 py-4 lg:px-6 lg:py-6">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6">
           <div className="lg:col-span-8 flex flex-col gap-4 lg:gap-6">
-            <CrashChart
-              round={currentRound}
-              serverTime={snapshotQuery.data?.serverTime}
-              isLoading={snapshotQuery.isLoading}
-            />
+            <div className="order-2 lg:order-1">
+              <CrashChart
+                round={currentRound}
+                serverTime={snapshotQuery.data?.serverTime}
+                isLoading={snapshotQuery.isLoading}
+              />
+            </div>
 
-            <RoundTransparencyPanel
-              round={currentRound}
-            />
+            <div className="order-1 lg:order-2">
+              <RoundTransparencyPanel
+                round={currentRound}
+              />
+            </div>
           </div>
 
           <div className="lg:col-span-4 flex flex-col gap-4 lg:gap-6">

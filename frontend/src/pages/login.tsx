@@ -76,8 +76,8 @@ export default function LoginPage() {
 
       <div className="relative z-10 w-full max-w-sm">
         {/* Logo / Brand */}
-        <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-20 w-36 items-center justify-center rounded-2xl bg-primary/10 px-4 ring-1 ring-primary/20">
+        <div className="mb-6 flex flex-col items-center gap-3">
+          <div className="flex h-14 w-24 items-center justify-center rounded-xl bg-primary/[0.08] px-2.5 ring-1 ring-primary/[0.15]">
             <img
               src="/icon.png"
               alt="Crash Game"
