@@ -10,6 +10,7 @@ import type {
   CurrentGameSnapshot,
   Player,
   RoundHistoryEntry,
+  RoundVerification,
   Wallet,
 } from "./types"
 
@@ -189,4 +190,10 @@ export async function cashOut(): Promise<CashOutResponse> {
     method: "POST",
     auth: true,
   })
+}
+
+export async function fetchRoundVerification(
+  roundId: string,
+): Promise<RoundVerification> {
+  return sendRequest<RoundVerification>(`/games/rounds/${roundId}/verify`)
 }

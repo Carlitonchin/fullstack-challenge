@@ -6,6 +6,7 @@ export {
   type WalletBalanceUpdated,
   type Player,
   type RoundHistoryEntry,
+  type RoundVerification,
   type RoundStatus,
   type BetStatus,
   type CurrentGameSnapshot,
@@ -20,5 +21,6 @@ export {
   fetchMyBets,
   placeBet,
   cashOut,
+  fetchRoundVerification,
   getApiBaseUrl,
 } from "./client"

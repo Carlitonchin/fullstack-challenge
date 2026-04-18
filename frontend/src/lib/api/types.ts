@@ -100,3 +100,22 @@ export interface CashOutResponse {
   multiplier: number
   payoutAmountInCents: number
 }
+
+export interface RoundVerification {
+  roundId: string
+  strategyId: string
+  strategyDisplayName: string
+  strategyDescription: string
+  algorithm: string
+  hashAlgorithm: string
+  outcomeAlgorithm: string
+  nonce: string
+  serverSeedHash: string
+  serverSeed: string | null
+  isServerSeedRevealed: boolean
+  crashPoint: number | null
+  crashMultiplier: number | null
+  houseEdgeDescription: string
+  verificationFormula: string
+  verificationSteps: { order: number; instruction: string }[]
+}

@@ -70,7 +70,7 @@ export class GamesController {
     return this.gameQueryService.getRoundHistory();
   }
 
-  @Get("rounds/:roundId/verification")
+  @Get("rounds/:roundId/verify")
   @ApiOperation({ summary: "Get provably-fair verification details for a round" })
   @ApiOkResponse({ description: "Round verification payload" })
   @ApiNotFoundResponse({ description: "Round or strategy was not found" })

@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import {
   Tooltip,
@@ -7,6 +8,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatMultiplier, formatTimeAgo, truncateHash } from "@/lib/format"
 import type { RoundHistoryEntry } from "@/lib/api"
+import { VerificationModal } from "./verification-modal"
 
 interface RoundHistoryProps {
   rounds: RoundHistoryEntry[] | undefined
@@ -28,6 +30,14 @@ function getCrashBg(point: number): string {
 }
 
 export function RoundHistory({ rounds, isLoading }: RoundHistoryProps) {
+  const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null)
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setSelectedRoundId(null)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex gap-1.5 px-1">
@@ -47,35 +57,44 @@ export function RoundHistory({ rounds, isLoading }: RoundHistoryProps) {
   }
 
   return (
-    <ScrollArea className="w-full">
-      <div className="flex gap-1.5 px-1 py-1">
-        {rounds.map((round) => (
-          <Tooltip key={round.id}>
-            <TooltipTrigger asChild>
-              <button
-                className={`shrink-0 cursor-pointer rounded-md border px-2.5 py-1 text-xs font-semibold tabular-nums transition-colors ${getCrashBg(round.crashPoint)} ${getCrashColor(round.crashPoint)}`}
-              >
-                {formatMultiplier(round.crashPoint)}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">
-              <div className="flex flex-col gap-1">
-                <span>Round {round.id.slice(0, 8)}</span>
-                <span className="text-muted-foreground">
-                  {round.playerCount} players
-                </span>
-                <span className="text-muted-foreground">
-                  {formatTimeAgo(round.crashedAt)}
-                </span>
-                <code className="text-[10px] text-muted-foreground/70">
-                  {truncateHash(round.serverSeedHash, 4)}
-                </code>
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        ))}
-      </div>
-      <ScrollBar orientation="horizontal" />
-    </ScrollArea>
+    <>
+      <ScrollArea className="w-full">
+        <div className="flex gap-1.5 px-1 py-1">
+          {rounds.map((round) => (
+            <Tooltip key={round.id}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setSelectedRoundId(round.id)}
+                  className={`shrink-0 cursor-pointer rounded-md border px-2.5 py-1 text-xs font-semibold tabular-nums transition-colors ${getCrashBg(round.crashPoint)} ${getCrashColor(round.crashPoint)}`}
+                >
+                  {formatMultiplier(round.crashPoint)}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                <div className="flex flex-col gap-1">
+                  <span>Round {round.id.slice(0, 8)}</span>
+                  <span className="text-muted-foreground">
+                    {round.playerCount} players
+                  </span>
+                  <span className="text-muted-foreground">
+                    {formatTimeAgo(round.crashedAt)}
+                  </span>
+                  <code className="text-[10px] text-muted-foreground/70">
+                    {truncateHash(round.serverSeedHash, 4)}
+                  </code>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
+
+      <VerificationModal
+        roundId={selectedRoundId ?? ""}
+        open={!!selectedRoundId}
+        onOpenChange={handleOpenChange}
+      />
+    </>
   )
 }
