@@ -195,27 +195,6 @@ export function RoundTransparencyPanel({
             <Separator className="my-1" />
             <div className="flex flex-col gap-2">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedRoundId(previousRoundProof.roundId)}
-                      className="order-1 w-fit sm:order-2"
-                    >
-                      <Badge
-                        variant="secondary"
-                        className="flex w-fit cursor-pointer items-center gap-1 bg-emerald-500/10 text-[10px] text-emerald-600 transition-colors hover:bg-emerald-500/15"
-                      >
-                        Verified
-                        <EyeIcon className="size-3.5" />
-                        <span className="sr-only">View previous round proof details</span>
-                      </Badge>
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    View previous round proof details
-                  </TooltipContent>
-                </Tooltip>
                 <span className="order-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground sm:order-1">
                   Previous Round Verified
                 </span>
