@@ -153,7 +153,10 @@ function DataSection({
         Round Data
       </h4>
       <div className="grid grid-cols-2 gap-2 text-xs">
-        <DataRow label="Nonce" value={verification.nonce} />
+        <DataRow
+          label="Nonce"
+          value={<NonceCopyableValue nonce={verification.nonce} />}
+        />
         <DataRow
           label="Server Seed Hash"
           value={
@@ -253,11 +256,23 @@ function ServerSeedWithTooltip({ seed }: { seed: string }) {
   )
 }
 
+function NonceCopyableValue({ nonce }: { nonce: string }) {
+  return (
+    <CopyTooltipButton value={nonce} showValueInTooltip={false}>
+      <code className="cursor-pointer font-mono text-chart-1 hover:underline">
+        {nonce}
+      </code>
+    </CopyTooltipButton>
+  )
+}
+
 function CopyTooltipButton({
   value,
+  showValueInTooltip = true,
   children,
 }: {
   value: string
+  showValueInTooltip?: boolean
   children: React.ReactNode
 }) {
   const [copied, setCopied] = useState(false)
@@ -282,7 +297,9 @@ function CopyTooltipButton({
       </TooltipTrigger>
       <TooltipContent side="bottom">
         <div className="flex flex-col gap-1">
-          <p className="font-mono text-xs break-all">{value}</p>
+          {showValueInTooltip ? (
+            <p className="font-mono text-xs break-all">{value}</p>
+          ) : null}
           <p className="text-[10px] text-muted-foreground">
             {copied ? "✓ Copied!" : "Click to copy"}
           </p>
