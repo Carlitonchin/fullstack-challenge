@@ -81,16 +81,18 @@ export default function HomePage() {
       {/* Main content */}
       <main className="relative z-10 mx-auto max-w-7xl px-4 py-4 lg:px-6 lg:py-6">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6">
-          {/* Chart — aligned with bet controls on the first row */}
-          <div className="lg:col-span-8">
+          <div className="lg:col-span-8 flex flex-col gap-4 lg:gap-6">
             <CrashChart
               round={currentRound}
               serverTime={snapshotQuery.data?.serverTime}
               isLoading={snapshotQuery.isLoading}
             />
+
+            <RoundTransparencyPanel
+              round={currentRound}
+            />
           </div>
 
-          {/* Bet Controls — sidebar right */}
           <div className="lg:col-span-4 flex flex-col gap-4 lg:gap-6">
             <BetControls
               round={currentRound}
@@ -101,28 +103,15 @@ export default function HomePage() {
               isLoadingWallet={walletQuery.isLoading}
               isLoadingMyBets={myBetsQuery.isLoading}
             />
-          </div>
 
-          <div className="lg:col-span-8">
-            <RoundTransparencyPanel
-              round={currentRound}
-            />
-          </div>
-
-          <div className="lg:col-span-4" />
-
-          {/* Bottom row: current bets + my bets */}
-          <div className="lg:col-span-8">
-            <CurrentBets
-              bets={currentBets}
-              isLoading={snapshotQuery.isLoading}
-            />
-          </div>
-
-          <div className="lg:col-span-4">
             <MyBets
               bets={myBetsQuery.data}
               isLoading={myBetsQuery.isLoading}
+            />
+
+            <CurrentBets
+              bets={currentBets}
+              isLoading={snapshotQuery.isLoading}
             />
           </div>
         </div>
