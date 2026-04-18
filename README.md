@@ -229,6 +229,7 @@ O realm `crash-game` é importado automaticamente no `docker:up`. Nenhuma config
 | Realm          | `crash-game`                                                               |
 | Client ID      | `crash-game-client` (public, PKCE S256)                                    |
 | Usuário teste  | `player` / `player123`                                                     |
+| Wallet demo    | criada automaticamente no `docker:up` com saldo inicial de `BRL 100.00`   |
 | OIDC discovery | `http://localhost:8080/realms/crash-game/.well-known/openid-configuration` |
 
 ### Scaffold dos serviços de aplicação
@@ -277,6 +278,8 @@ bun run docker:up      # Sobe tudo (infra + serviços + frontend)
 bun run docker:down    # Para os containers
 bun run docker:prune   # Remove tudo (containers, volumes, imagens)
 ```
+
+Depois do `docker:up`, o usuário `player` já fica pronto para avaliação: o realm é importado no Keycloak e o serviço `wallets` faz bootstrap idempotente da carteira demo usando o `sub` fixo do usuário de teste. Se a carteira já existir, o bootstrap apenas reutiliza o estado atual e não credita saldo duplicado.
 
 ---
 

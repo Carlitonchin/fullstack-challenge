@@ -111,6 +111,9 @@ services:
       KEYCLOAK_ISSUER: http://localhost:8080/realms/crash-game
       KEYCLOAK_JWKS_URI: http://keycloak:8080/realms/crash-game/protocol/openid-connect/certs
       KEYCLOAK_CLIENT_ID: crash-game-client
+      DEMO_PLAYER_WALLET_BOOTSTRAP_ENABLED: "true"
+      DEMO_PLAYER_ID: 00000000-0000-4000-8000-000000000001
+      DEMO_PLAYER_USERNAME: player
     depends_on:
       postgres:
         condition: service_healthy

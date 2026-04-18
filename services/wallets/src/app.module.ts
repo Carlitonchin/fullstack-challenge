@@ -4,6 +4,7 @@ import type { MikroOrmModuleSyncOptions } from "@mikro-orm/nestjs";
 import { MessagingOutboxModule } from "@crash/messaging";
 import { WalletMoneyFlowService } from "@wallets/application/wallet-money-flow.service";
 import { WalletDomainEventOutboxMapper } from "@wallets/application/outbox/wallet-domain-event-outbox.mapper";
+import { TestPlayerWalletBootstrapService } from "@wallets/application/test-player-wallet-bootstrap.service";
 import { CreateMyWalletUseCase } from "@wallets/application/use-cases/create-my-wallet.use-case";
 import { GetMyWalletUseCase } from "@wallets/application/use-cases/get-my-wallet.use-case";
 import { TIME_PROVIDER } from "@wallets/port/time-provider";
@@ -30,6 +31,7 @@ import mikroOrmConfig from "./mikro-orm.config";
     WalletDomainEventOutboxMapper,
     WalletMoneyFlowService,
     GamesMoneyFlowConsumer,
+    TestPlayerWalletBootstrapService,
     CreateMyWalletUseCase,
     GetMyWalletUseCase,
     KeycloakJwtAuthGuard,
@@ -43,4 +45,4 @@ import mikroOrmConfig from "./mikro-orm.config";
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}
