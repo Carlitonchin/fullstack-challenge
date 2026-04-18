@@ -113,23 +113,12 @@ export function RoundTransparencyPanel({
                   label="Hash"
                   value={fairness.strategy.hashAlgorithm}
                 />
-                <FairnessInfoItem
-                  label="Outcome"
-                  value={fairness.strategy.outcomeAlgorithm}
-                />
+               
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <FairnessInfoItem
-                  label="Curve"
-                  value={`${fairness.curve.kind} v${fairness.curve.version}`}
-                />
-                <FairnessInfoItem
-                  label="Base"
-                  value={`${fairness.curve.baseMultiplier.toFixed(2)}x`}
-                />
-                <FairnessInfoItem
-                  label="Growth"
-                  value={`${fairness.curve.growthRate.toFixed(4)}/ms`}
+              <FairnessInfoItem
+                  label="Outcome"
+                  value={fairness.strategy.outcomeAlgorithm}
                 />
                 <FairnessInfoItem
                   label="House Edge"
@@ -140,10 +129,10 @@ export function RoundTransparencyPanel({
 
             <div className="flex flex-col gap-2 rounded-md bg-muted/20 p-3">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Verification Formula
                 </span>
-                <span className="text-[10px] text-muted-foreground/60 sm:text-right">
+                <span className="text-xs text-muted-foreground/60 sm:text-right">
                   Published {new Date(fairness.timeline.publishedAt).toLocaleTimeString()}
                 </span>
               </div>
@@ -162,7 +151,7 @@ export function RoundTransparencyPanel({
                     key={step.order}
                     className="flex items-start gap-2 text-xs"
                   >
-                    <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-muted text-[9px] font-medium">
+                    <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
                       {step.order}
                     </span>
                     <span className="text-muted-foreground">{step.instruction}</span>
@@ -201,14 +190,14 @@ export function RoundTransparencyPanel({
               </div>
               <div className="grid gap-2 rounded-md bg-muted/20 p-2.5 text-xs sm:grid-cols-2 lg:grid-cols-5">
                 <div className="flex flex-col gap-0.5 sm:col-span-1 lg:col-span-2">
-                  <span className="text-[9px] text-muted-foreground/60">Nonce</span>
+                  <span className="text-xs text-muted-foreground/60">Nonce</span>
                   <CopyableValue
                     value={previousRoundProof.nonce}
                     label={previousRoundProof.nonce}
                   />
                 </div>
                 <div className="flex flex-col gap-0.5 sm:col-span-1 lg:col-span-2">
-                  <span className="text-[9px] text-muted-foreground/60">Seed</span>
+                  <span className="text-xs text-muted-foreground/60">Seed</span>
                   <CopyableValue
                     value={truncateHash(previousRoundProof.serverSeed, 6)}
                     label={previousRoundProof.serverSeed}
@@ -216,7 +205,7 @@ export function RoundTransparencyPanel({
                   />
                 </div>
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-[9px] text-muted-foreground/60">Crash</span>
+                  <span className="text-xs text-muted-foreground/60">Crash</span>
                   <span className="font-semibold text-primary">
                     {formatMultiplier(previousRoundProof.crashPoint)}
                   </span>
@@ -255,7 +244,7 @@ function FairnessStatusBadge({
 }) {
   if (isRevealed && isSettled) {
     return (
-      <Badge variant="secondary" className="bg-emerald-500/10 text-[9px] text-emerald-600">
+      <Badge variant="secondary" className="bg-emerald-500/10 text-xs text-emerald-600">
         Seed revealed
       </Badge>
     )
@@ -263,14 +252,14 @@ function FairnessStatusBadge({
 
   if (isRunning) {
     return (
-      <Badge variant="outline" className="animate-pulse text-[9px]">
+      <Badge variant="outline" className="animate-pulse text-xs">
         Running
       </Badge>
     )
   }
 
   return (
-    <Badge variant="outline" className="text-[9px]">
+    <Badge variant="outline" className="text-xs">
       Seed hidden
     </Badge>
   )
@@ -395,7 +384,7 @@ function FairnessInfoItem({
 }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
+      <span className="text-xs uppercase tracking-wider text-muted-foreground/60">
         {label}
       </span>
       <span className="text-xs">{value}</span>
