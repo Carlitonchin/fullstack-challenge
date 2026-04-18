@@ -24,6 +24,7 @@ type ReconcileResult = {
   nextAt: Date | null;
   publishSnapshot: boolean;
   publishHistory: boolean;
+  betIdsToPublish: string[];
 };
 
 type TransactionalEntityManager = EntityManager & {
@@ -73,6 +74,10 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
         await this.gameRealtimePublisher.publishSnapshot();
       }
 
+      for (const betId of result.betIdsToPublish) {
+        await this.gameRealtimePublisher.publishPlayerBetUpdated(betId);
+      }
+
       if (result.publishHistory) {
         await this.gameRealtimePublisher.publishHistoryUpdated();
       }
@@ -111,6 +116,7 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
             nextAt: new Date(now.getTime() + ENGINE_RETRY_DELAY_IN_MS),
             publishSnapshot: false,
             publishHistory: false,
+            betIdsToPublish: [],
           };
         }
 
@@ -123,6 +129,7 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
 
         let publishSnapshot = false;
         let publishHistory = false;
+        const betIdsToPublish = new Set<string>();
         let currentRoundResult = await roundRepository.findCurrentRound();
 
         if (!currentRoundResult.success) {
@@ -157,6 +164,7 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
               nextAt: null,
               publishSnapshot,
               publishHistory,
+              betIdsToPublish: Array.from(betIdsToPublish),
             };
           }
 
@@ -228,12 +236,14 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
               round: currentRound,
               occurredAt: crashedAt,
             });
-            await this.markRoundAcceptedBetsAsLost({
+            const lostBetIds = await this.markRoundAcceptedBetsAsLost({
               roundId: currentRound.id,
               lostAt: crashedAt,
               betRepository,
               outboxRepository,
             });
+
+            lostBetIds.forEach((betId) => betIdsToPublish.add(betId));
             publishSnapshot = true;
             continue;
           }
@@ -246,13 +256,15 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
             const settledAt = new Date(
               Math.max(now.getTime(), currentRound.settlesAt.getTime()),
             );
-            await this.resolveRoundBetsForSettlement({
+            const settledBetIds = await this.resolveRoundBetsForSettlement({
               roundId: currentRound.id,
               crashOccurredAt: currentRound.crashedAt ?? currentRound.scheduledCrashAt!,
               settledAt,
               betRepository,
               outboxRepository,
             });
+
+            settledBetIds.forEach((betId) => betIdsToPublish.add(betId));
 
             const settleResult = currentRound.settle(settledAt);
 
@@ -281,6 +293,7 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
           nextAt: this.resolveNextWakeUp(currentRound, now),
           publishSnapshot,
           publishHistory,
+          betIdsToPublish: Array.from(betIdsToPublish),
         };
       },
       { clear: true },
@@ -326,12 +339,14 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
     lostAt: Date;
     betRepository: BetRepository;
     outboxRepository: PostgresOutboxRepository;
-  }): Promise<void> {
+  }): Promise<string[]> {
     const betsResult = await params.betRepository.findByRoundId(params.roundId);
 
     if (!betsResult.success) {
       throw new Error(getRepositoryErrorMessage(betsResult.error));
     }
+
+    const updatedBetIds: string[] = [];
 
     for (const bet of betsResult.data) {
       if (!bet.isAccepted) {
@@ -356,7 +371,11 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
         persistedAt: params.lostAt,
         outboxRepository: params.outboxRepository,
       });
+
+      updatedBetIds.push(updatedBetResult.data!.id);
     }
+
+    return updatedBetIds;
   }
 
   private async resolveRoundBetsForSettlement(params: {
@@ -365,12 +384,14 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
     settledAt: Date;
     betRepository: BetRepository;
     outboxRepository: PostgresOutboxRepository;
-  }): Promise<void> {
+  }): Promise<string[]> {
     const betsResult = await params.betRepository.findByRoundId(params.roundId);
 
     if (!betsResult.success) {
       throw new Error(getRepositoryErrorMessage(betsResult.error));
     }
+
+    const updatedBetIds: string[] = [];
 
     for (const bet of betsResult.data) {
       if (bet.isAccepted) {
@@ -403,7 +424,11 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
         persistedAt: params.settledAt,
         outboxRepository: params.outboxRepository,
       });
+
+      updatedBetIds.push(updatedBetResult.data!.id);
     }
+
+    return updatedBetIds;
   }
 
   private resolveNextWakeUp(currentRound: Round | null | undefined, now: Date): Date | null {

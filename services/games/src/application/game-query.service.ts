@@ -150,6 +150,34 @@ export class GameQueryService {
     return betViews;
   }
 
+  async getBetById(betId: string): Promise<GameBetView | null> {
+    const normalizedBetId = betId.trim();
+
+    if (!normalizedBetId) {
+      throw new InternalServerErrorException("Bet id is missing");
+    }
+
+    const betResult = await this.betRepository.findById(normalizedBetId);
+
+    if (!betResult.success) {
+      throw new InternalServerErrorException(
+        getRepositoryErrorMessage(betResult.error),
+      );
+    }
+
+    const bet = betResult.data;
+
+    if (!bet) {
+      return null;
+    }
+
+    return this.mapBet(bet, {
+      roundCrashMultiplier: shouldShowRoundCrashMultiplier(bet.status)
+        ? await this.resolveRoundCrashMultiplier(bet.roundId)
+        : null,
+    });
+  }
+
   async getRoundVerification(roundId: string) {
     const roundResult = await this.roundRepository.findById(roundId);
 

@@ -59,3 +59,14 @@ export type GameCashOutResponseView = {
   multiplier: number;
   payoutAmountInCents: number;
 };
+
+export type WalletBalanceUpdatedView = {
+  walletId: string;
+  playerId: string;
+  currency: "BRL";
+  balanceInCents: string;
+  amountInCents: string;
+  direction: "credit" | "debit";
+  operationId: string | null;
+  occurredAt: string;
+};

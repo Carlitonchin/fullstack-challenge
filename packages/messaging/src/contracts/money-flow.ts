@@ -7,8 +7,31 @@ export const BET_REFUND_FAILED = "bet.refund.failed";
 export const CASHOUT_CREDIT_REQUESTED = "cashout.credit.requested";
 export const CASHOUT_CREDIT_SUCCEEDED = "cashout.credit.succeeded";
 export const CASHOUT_CREDIT_FAILED = "cashout.credit.failed";
+export const WALLET_CREDITED = "wallet.credited";
+export const WALLET_DEBITED = "wallet.debited";
+export const BET_REJECTED = "bet.rejected";
 
 export type MoneyCurrency = "BRL";
+
+export type WalletBalanceChangedData = {
+  walletId: string;
+  playerId: string;
+  operationId: string | null;
+  amountInCents: string;
+  currency: MoneyCurrency;
+  balanceAfterInCents: string;
+};
+
+export type WalletCreditedData = WalletBalanceChangedData;
+export type WalletDebitedData = WalletBalanceChangedData;
+
+export type BetRejectedData = {
+  betId: string;
+  roundId: string;
+  playerId: string;
+  playerUsername: string;
+  rejectionReason: string;
+};
 
 export type BetDebitRequestedData = {
   playerId: string;

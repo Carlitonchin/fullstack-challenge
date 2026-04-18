@@ -9,7 +9,14 @@ import {
   fetchMyBets,
   getApiBaseUrl,
 } from "@/lib/api"
-import type { Bet, CurrentGameSnapshot, RoundHistoryEntry } from "@/lib/api"
+import type {
+  Bet,
+  CurrentGameSnapshot,
+  RoundHistoryEntry,
+  Wallet,
+  WalletBalanceUpdated,
+} from "@/lib/api"
+import { ensureValidAccessToken } from "@/lib/auth"
 
 const SNAPSHOT_QUERY_KEY = ["game", "snapshot"] as const
 const HISTORY_QUERY_KEY = ["game", "history"] as const
@@ -56,21 +63,15 @@ export function useGameRealtime(playerId?: string) {
   const queryClient = useQueryClient()
 
   useEffect(() => {
-    const socket = io(getApiBaseUrl(), {
-      path: "/games/socket.io",
-      transports: ["websocket"],
-      withCredentials: true,
-    })
+    let socket: ReturnType<typeof io> | null = null
+    let cancelled = false
 
-    socket.on("game.snapshot", (snapshot: CurrentGameSnapshot) => {
-      queryClient.setQueryData(SNAPSHOT_QUERY_KEY, snapshot)
-    })
+    function reconcilePrivateState() {
+      void queryClient.invalidateQueries({ queryKey: WALLET_QUERY_KEY })
+      void queryClient.invalidateQueries({ queryKey: MY_BETS_QUERY_KEY })
+    }
 
-    socket.on("history.updated", (history: RoundHistoryEntry[]) => {
-      queryClient.setQueryData(HISTORY_QUERY_KEY, history)
-    })
-
-    socket.on("bet.updated", (bet: Bet) => {
+    function applyBetUpdated(bet: Bet) {
       queryClient.setQueryData<CurrentGameSnapshot | undefined>(
         SNAPSHOT_QUERY_KEY,
         (current) => {
@@ -104,10 +105,61 @@ export function useGameRealtime(playerId?: string) {
           )
         })
       }
-    })
+    }
+
+    async function connectRealtime() {
+      const token = await ensureValidAccessToken()
+
+      if (cancelled || !token) {
+        return
+      }
+
+      socket = io(getApiBaseUrl(), {
+        path: "/games/socket.io",
+        transports: ["websocket"],
+        withCredentials: true,
+        auth: {
+          token,
+        },
+      })
+
+      socket.on("connect", reconcilePrivateState)
+
+      socket.io.on("reconnect", reconcilePrivateState)
+
+      socket.on("game.snapshot", (snapshot: CurrentGameSnapshot) => {
+        queryClient.setQueryData(SNAPSHOT_QUERY_KEY, snapshot)
+      })
+
+      socket.on("history.updated", (history: RoundHistoryEntry[]) => {
+        queryClient.setQueryData(HISTORY_QUERY_KEY, history)
+      })
+
+      socket.on("bet.updated", applyBetUpdated)
+
+      socket.on("player.bet.updated", applyBetUpdated)
+
+      socket.on("wallet.balance-updated", (event: WalletBalanceUpdated) => {
+        if (playerId && event.playerId !== playerId) {
+          return
+        }
+
+        queryClient.setQueryData<Wallet | null | undefined>(
+          WALLET_QUERY_KEY,
+          (current) => ({
+            id: current?.id ?? event.walletId,
+            playerId: current?.playerId ?? event.playerId,
+            balanceCents: Number(event.balanceInCents),
+          }),
+        )
+      })
+    }
+
+    void connectRealtime().catch(() => undefined)
 
     return () => {
-      socket.close()
+      cancelled = true
+      socket?.close()
     }
   }, [playerId, queryClient])
 }

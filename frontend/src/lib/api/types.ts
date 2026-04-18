@@ -80,6 +80,17 @@ export interface Wallet {
   balanceCents: number
 }
 
+export interface WalletBalanceUpdated {
+  walletId: string
+  playerId: string
+  currency: "BRL"
+  balanceInCents: string
+  amountInCents: string
+  direction: "credit" | "debit"
+  operationId: string | null
+  occurredAt: string
+}
+
 export interface Player {
   id: string
   username: string

@@ -30,6 +30,18 @@ export class GameRealtimePublisher {
     this.gameGateway.emitBetUpdated(bet);
   }
 
+  async publishPlayerBetUpdated(betId: string): Promise<void> {
+    const bet = await RequestContext.create(this.orm.em, async () =>
+      this.gameQueryService.getBetById(betId),
+    );
+
+    if (!bet) {
+      return;
+    }
+
+    this.gameGateway.emitPlayerBetUpdated(bet.playerId, bet);
+  }
+
   async publishHistoryUpdated(): Promise<void> {
     const history = await RequestContext.create(this.orm.em, async () =>
       this.gameQueryService.getRoundHistory(),

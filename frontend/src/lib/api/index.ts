@@ -3,6 +3,7 @@ export {
   type RoundCurve,
   type Bet,
   type Wallet,
+  type WalletBalanceUpdated,
   type Player,
   type RoundHistoryEntry,
   type RoundStatus,
