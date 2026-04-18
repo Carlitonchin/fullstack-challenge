@@ -9,7 +9,8 @@
   "scripts": {
     "docker:up": "docker compose up",
     "docker:down": "docker compose down",
-    "docker:prune": "docker compose down -v --rmi all --remove-orphans && docker volume prune -f"
+    "docker:prune": "docker compose down -v --rmi all --remove-orphans && docker volume prune -f",
+    "test:e2e": "./scripts/test-e2e.sh"
   },
   "devDependencies": {
     "bun-types": "latest"
