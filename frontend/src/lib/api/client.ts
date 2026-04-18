@@ -191,7 +191,7 @@ export async function fetchMyBets(
 }
 
 export async function placeBet(amountInCents: number): Promise<Bet> {
-  return sendRequest<Bet>("/games/bets", {
+  return sendRequest<Bet>("/games/bet", {
     method: "POST",
     auth: true,
     body: {
@@ -201,7 +201,7 @@ export async function placeBet(amountInCents: number): Promise<Bet> {
 }
 
 export async function cashOut(): Promise<CashOutResponse> {
-  return sendRequest<CashOutResponse>("/games/bets/cashout", {
+  return sendRequest<CashOutResponse>("/games/bet/cashout", {
     method: "POST",
     auth: true,
   })

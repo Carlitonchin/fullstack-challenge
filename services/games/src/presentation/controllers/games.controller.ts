@@ -108,7 +108,7 @@ export class GamesController {
     );
   }
 
-  @Post("bets")
+  @Post("bet")
   @HttpCode(HttpStatus.ACCEPTED)
   @UseGuards(KeycloakJwtAuthGuard)
   @ApiBearerAuth("bearer")
@@ -129,7 +129,7 @@ export class GamesController {
     });
   }
 
-  @Post("bets/cashout")
+  @Post("bet/cashout")
   @HttpCode(HttpStatus.OK)
   @UseGuards(KeycloakJwtAuthGuard)
   @ApiBearerAuth("bearer")
