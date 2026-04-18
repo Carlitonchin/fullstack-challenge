@@ -1,10 +1,10 @@
 /**
  * Formatting utilities for the crash game UI.
- * Money is always stored in integer cents — formatting is a presentation concern.
+ * Money is always stored in integer cents; formatting is a presentation concern.
  */
 
 /**
- * Format cents to a BRL string. E.g. 12500 → "R$ 125,00"
+ * Format cents to a BRL string. E.g. 12500 -> "R$ 125,00"
  */
 export function formatCents(cents: number): string {
   const value = cents / 100
@@ -17,7 +17,7 @@ export function formatCents(cents: number): string {
 }
 
 /**
- * Format a multiplier value. E.g. 2.35 → "2.35x"
+ * Format a multiplier value. E.g. 2.35 -> "2.35x"
  */
 export function formatMultiplier(value: number): string {
   return `${value.toFixed(2)}x`
@@ -58,7 +58,7 @@ export function formatTimeAgo(isoString: string): string {
 }
 
 /**
- * Truncate a hash for display. E.g. "a3f8c1d9e7b2..." → "a3f8c1...b24d6e"
+ * Truncate a hash for display. E.g. "a3f8c1d9e7b2..." -> "a3f8c1...b24d6e"
  */
 export function truncateHash(hash: string, chars = 6): string {
   if (hash.length <= chars * 2) return hash

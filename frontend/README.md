@@ -1,21 +1,23 @@
-# React + TypeScript + Vite + shadcn/ui
+# Frontend
 
-This is a template for a new Vite project with React, TypeScript, and shadcn/ui.
+React + TypeScript + Vite frontend for the crash game client.
 
-## Adding components
+## Validation
 
-To add components to your app, run the following command:
+Use these commands to validate the production build locally:
+
+```bash
+cd frontend
+bun run typecheck
+bun run build
+```
+
+`bun run build` runs `tsc -b && vite build` and is the production build gate for this app.
+
+## UI Components
+
+To add components to the app, run:
 
 ```bash
 npx shadcn@latest add button
-```
-
-This will place the ui components in the `src/components` directory.
-
-## Using components
-
-To use the components in your app, import them as follows:
-
-```tsx
-import { Button } from "@/components/ui/button"
 ```

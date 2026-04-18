@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useSyncedNow } from "@/hooks/use-synced-now"
 import type { Round } from "@/lib/api"
-import { formatMultiplier, truncateHash } from "@/lib/format"
+import { formatMultiplier } from "@/lib/format"
 import {
   getRoundDurationInMs,
   getRoundElapsedInMs,
