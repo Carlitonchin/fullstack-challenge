@@ -48,22 +48,13 @@ export default function HomePage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 lg:px-6">
           {/* Brand */}
           <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                className="size-5 text-primary"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-              </svg>
+            <div className="flex h-14 w-24 items-center justify-center rounded-xl bg-primary/10 px-3 ring-1 ring-primary/20">
+              <img
+                src="/icon.png"
+                alt="Crash Game"
+                className="h-full w-full object-contain"
+              />
             </div>
-            <span className="text-xs tracking-[0.25em] uppercase text-muted-foreground">
-              crash.game
-            </span>
           </div>
 
           {/* Player info */}

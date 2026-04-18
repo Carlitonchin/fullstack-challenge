@@ -77,22 +77,13 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-sm">
         {/* Logo / Brand */}
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              className="size-6 text-primary"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-            </svg>
+          <div className="flex h-20 w-36 items-center justify-center rounded-2xl bg-primary/10 px-4 ring-1 ring-primary/20">
+            <img
+              src="/icon.png"
+              alt="Crash Game"
+              className="h-full w-full object-contain"
+            />
           </div>
-          <span className="text-xs tracking-[0.25em] uppercase text-muted-foreground">
-            crash.game
-          </span>
         </div>
 
         <Card>
