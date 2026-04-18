@@ -111,11 +111,6 @@ export function BetControls({
       return
     }
 
-    if (wallet && cents > wallet.balanceCents) {
-      setError("Insufficient balance")
-      return
-    }
-
     betMutation.mutate(cents)
   }
 

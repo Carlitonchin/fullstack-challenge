@@ -54,6 +54,7 @@ export interface Bet {
   rejectedAt: string | null
   rejectionReason: string | null
   cashoutMultiplier: number | null
+  roundCrashMultiplier: number | null
   payoutAmountInCents: number | null
   createdAt: string
   settledAt: string | null

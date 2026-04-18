@@ -127,7 +127,27 @@ export class GameQueryService {
       );
     }
 
-    return betsResult.data.map((bet) => this.mapBet(bet));
+    const roundCrashMultipliers = new Map<string, number | null>();
+    const betViews: GameBetView[] = [];
+
+    for (const bet of betsResult.data) {
+      if (!roundCrashMultipliers.has(bet.roundId)) {
+        roundCrashMultipliers.set(
+          bet.roundId,
+          await this.resolveRoundCrashMultiplier(bet.roundId),
+        );
+      }
+
+      betViews.push(
+        this.mapBet(bet, {
+          roundCrashMultiplier: shouldShowRoundCrashMultiplier(bet.status)
+            ? roundCrashMultipliers.get(bet.roundId) ?? null
+            : null,
+        }),
+      );
+    }
+
+    return betViews;
   }
 
   async getRoundVerification(roundId: string) {
@@ -250,7 +270,31 @@ export class GameQueryService {
     ).toISOString();
   }
 
-  mapBet(bet: Bet): GameBetView {
+  private async resolveRoundCrashMultiplier(roundId: string): Promise<number | null> {
+    const roundResult = await this.roundRepository.findById(roundId);
+
+    if (!roundResult.success) {
+      throw new InternalServerErrorException(
+        getRepositoryErrorMessage(roundResult.error),
+      );
+    }
+
+    const round = roundResult.data;
+
+    if (
+      !round ||
+      (round.status !== RoundStatus.CRASHED && round.status !== RoundStatus.SETTLED)
+    ) {
+      return null;
+    }
+
+    return round.crashMultiplier ?? round.crashPoint;
+  }
+
+  mapBet(
+    bet: Bet,
+    options: { roundCrashMultiplier?: number | null } = {},
+  ): GameBetView {
     return {
       id: bet.id,
       roundId: bet.roundId,
@@ -263,6 +307,7 @@ export class GameQueryService {
       rejectedAt: bet.rejectedAt?.toISOString() ?? null,
       rejectionReason: bet.rejectionReason,
       cashoutMultiplier: bet.cashoutMultiplier,
+      roundCrashMultiplier: options.roundCrashMultiplier ?? null,
       payoutAmountInCents: bet.payoutAmountInCents,
       createdAt: bet.createdAt.toISOString(),
       settledAt: bet.settledAt?.toISOString() ?? null,
@@ -277,6 +322,10 @@ function isPublicBetStatus(status: Bet["status"]): boolean {
     status === "LOST" ||
     status === "SETTLED"
   );
+}
+
+function shouldShowRoundCrashMultiplier(status: Bet["status"]): boolean {
+  return status === "CASHED_OUT" || status === "LOST" || status === "SETTLED";
 }
 
 function getRepositoryErrorMessage(

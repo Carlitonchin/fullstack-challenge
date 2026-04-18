@@ -100,9 +100,7 @@ function BetList({ bets }: { bets: Bet[] }) {
                 </span>
                 <BetStatusBadge bet={bet} />
               </div>
-              <span className="text-[10px] text-muted-foreground">
-                {formatTimeAgo(bet.createdAt)}
-              </span>
+              <BetContext bet={bet} />
             </div>
 
             <BetValue bet={bet} />
@@ -114,16 +112,23 @@ function BetList({ bets }: { bets: Bet[] }) {
 }
 
 function BetStatusBadge({ bet }: { bet: Bet }) {
-  if ((bet.status === "CASHED_OUT" || bet.status === "SETTLED") && bet.cashoutMultiplier) {
+  if (hasWonBet(bet) && bet.cashoutMultiplier) {
     return (
       <Badge variant="outline" className="border-primary/30 text-[10px] text-primary">
-        {formatMultiplier(bet.cashoutMultiplier)}
+        Cashout {formatMultiplier(bet.cashoutMultiplier)}
       </Badge>
     )
   }
 
-  if (bet.status === "LOST") {
-    return <Badge variant="destructive" className="text-[10px]">Lost</Badge>
+  if (hasLostBet(bet)) {
+    return (
+      <Badge
+        variant="outline"
+        className="border-destructive/30 text-[10px] text-destructive"
+      >
+        Lost
+      </Badge>
+    )
   }
 
   if (bet.status === "REJECTED") {
@@ -133,9 +138,38 @@ function BetStatusBadge({ bet }: { bet: Bet }) {
   return <Badge variant="secondary" className="text-[10px]">{bet.status.toLowerCase()}</Badge>
 }
 
+function BetContext({ bet }: { bet: Bet }) {
+  const crashLabel =
+    bet.roundCrashMultiplier !== null
+      ? `Crash ${formatMultiplier(bet.roundCrashMultiplier)}`
+      : null
+
+  if (hasLostBet(bet)) {
+    return (
+      <span className="text-[10px] text-muted-foreground">
+        {crashLabel ?? formatTimeAgo(bet.createdAt)}
+      </span>
+    )
+  }
+
+  if (hasWonBet(bet) && crashLabel) {
+    return (
+      <span className="text-[10px] text-muted-foreground">
+        {crashLabel}
+      </span>
+    )
+  }
+
+  return (
+    <span className="text-[10px] text-muted-foreground">
+      {formatTimeAgo(bet.createdAt)}
+    </span>
+  )
+}
+
 function BetValue({ bet }: { bet: Bet }) {
-  if (bet.status === "CASHED_OUT" || bet.status === "SETTLED") {
-    const profit = (bet.payoutAmountInCents ?? 0) - bet.amountInCents
+  if (hasWonBet(bet)) {
+    const profit = bet.payoutAmountInCents! - bet.amountInCents
 
     return (
       <span className="text-xs font-semibold text-primary tabular-nums">
@@ -144,7 +178,7 @@ function BetValue({ bet }: { bet: Bet }) {
     )
   }
 
-  if (bet.status === "LOST") {
+  if (hasLostBet(bet)) {
     return (
       <span className="text-xs font-semibold text-destructive tabular-nums">
         -{formatCents(bet.amountInCents)}
@@ -164,5 +198,22 @@ function BetValue({ bet }: { bet: Bet }) {
     <span className="text-xs font-semibold text-muted-foreground tabular-nums">
       {bet.status.toLowerCase()}
     </span>
+  )
+}
+
+function hasWonBet(bet: Bet): boolean {
+  return (
+    (bet.status === "CASHED_OUT" || bet.status === "SETTLED") &&
+    bet.cashoutMultiplier !== null &&
+    bet.payoutAmountInCents !== null
+  )
+}
+
+function hasLostBet(bet: Bet): boolean {
+  return (
+    bet.status === "LOST" ||
+    (bet.status === "SETTLED" &&
+      bet.cashoutMultiplier === null &&
+      bet.payoutAmountInCents === null)
   )
 }
