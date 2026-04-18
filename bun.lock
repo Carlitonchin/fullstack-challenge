@@ -126,6 +126,8 @@
         "@types/amqplib": "^0.10.8",
         "amqplib": "^1.0.3",
         "jose": "^6.2.2",
+        "reflect-metadata": "^0.2.2",
+        "rxjs": "^7.8.2",
         "swagger-ui-express": "^5.0.1",
       },
       "devDependencies": {

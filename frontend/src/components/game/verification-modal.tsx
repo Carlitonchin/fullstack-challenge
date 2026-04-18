@@ -1,4 +1,6 @@
+import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { toast } from "sonner"
 import {
   Dialog,
   DialogContent,
@@ -37,7 +39,10 @@ export function VerificationModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="xl">
+      <DialogContent
+        size="xl"
+        className="flex h-[80vh] max-h-[800px] flex-col overflow-hidden"
+      >
         <DialogHeader className="p-4 pb-0">
           <div className="flex items-center justify-between">
             <div>
@@ -55,15 +60,17 @@ export function VerificationModal({
           </div>
         </DialogHeader>
 
-        {query.isLoading ? (
-          <VerificationSkeleton />
-        ) : query.isError ? (
-          <div className="p-4 text-center text-sm text-destructive">
-            Failed to load verification data
-          </div>
-        ) : query.data ? (
-          <VerificationContent verification={query.data} />
-        ) : null}
+        <div className="min-h-0 flex-1">
+          {query.isLoading ? (
+            <VerificationSkeleton />
+          ) : query.isError ? (
+            <div className="flex h-full items-center justify-center p-4 text-center text-sm text-destructive">
+              Failed to load verification data
+            </div>
+          ) : query.data ? (
+            <VerificationContent verification={query.data} />
+          ) : null}
+        </div>
       </DialogContent>
     </Dialog>
   )
@@ -87,7 +94,7 @@ function VerificationContent({
   verification: RoundVerification
 }) {
   return (
-    <ScrollArea className="max-h-[60vh]">
+    <ScrollArea className="h-full">
       <div className="flex flex-col gap-4 p-4">
         <StrategySection verification={verification} />
         <Separator />
@@ -264,6 +271,7 @@ function CopyTooltipButton({
   const handleCopy = async () => {
     await navigator.clipboard.writeText(value)
     setCopied(true)
+    toast.success("Copied to clipboard")
     setTimeout(() => setCopied(false), 1500)
   }
 
@@ -292,7 +300,7 @@ function CopyTooltipButton({
 
 function VerificationSkeleton() {
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex h-full flex-col gap-4 p-4">
       <div className="flex flex-col gap-2">
         <Skeleton className="h-4 w-16" />
         <Skeleton className="h-4 w-full" />
@@ -307,7 +315,7 @@ function VerificationSkeleton() {
         <Skeleton className="h-8" />
       </div>
       <Separator />
-      <Skeleton className="h-20" />
+      <Skeleton className="min-h-0 flex-1" />
     </div>
   )
 }
