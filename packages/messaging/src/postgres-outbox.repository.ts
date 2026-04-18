@@ -179,7 +179,6 @@ export class PostgresOutboxRepository implements OutboxRepository {
         update ${this.options.tableName}
         set status = ?,
             attempts = attempts + 1,
-            available_at = ?,
             locked_at = null,
             locked_by = null,
             last_error = ?,
@@ -190,7 +189,6 @@ export class PostgresOutboxRepository implements OutboxRepository {
       `,
       [
         OutboxStatus.UNROUTABLE,
-        params.availableAt,
         params.error,
         params.failedAt,
         params.messageId,

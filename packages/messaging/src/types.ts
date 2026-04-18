@@ -118,7 +118,6 @@ export type MarkOutboxRetryParams = {
 
 export type MarkOutboxUnroutableParams = {
   messageId: string;
-  availableAt: Date;
   failedAt: Date;
   error: string;
   workerId: string;

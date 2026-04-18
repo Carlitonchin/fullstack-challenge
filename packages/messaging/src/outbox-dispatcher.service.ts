@@ -83,32 +83,26 @@ export class OutboxDispatcherService {
       });
     } catch (error) {
       const reason = this.stringifyError(error);
-      const nextAttemptNumber = message.attempts + 1;
 
       if (error instanceof UnroutableBrokerMessageError) {
-        if (nextAttemptNumber >= this.outboxConfig.maxAttempts) {
-          this.logger.log(
-            `Outbox message ${message.id} (${message.eventType}) exhausted retries without RabbitMQ bindings; marking as UNROUTABLE`,
-          );
+        this.logger.warn(
+          `Outbox message ${message.id} (${message.eventType}) is unroutable in RabbitMQ; marking as UNROUTABLE without retry`,
+        );
 
-          await this.outboxRepository.markUnroutable({
-            messageId: message.id,
-            failedAt: now,
-            availableAt: calculateNextAttemptAt(
-              nextAttemptNumber,
-              now,
-              this.outboxConfig.maxBackoffMs,
-            ),
-            error: reason,
-            workerId,
-          });
-          return;
-        }
+        await this.outboxRepository.markUnroutable({
+          messageId: message.id,
+          failedAt: now,
+          error: reason,
+          workerId,
+        });
+        return;
       }
 
       this.logger.warn(
         `Outbox publish failed for ${message.id} (${message.eventType}): ${reason}`,
       );
+
+      const nextAttemptNumber = message.attempts + 1;
 
       if (nextAttemptNumber >= this.outboxConfig.maxAttempts) {
         await this.outboxRepository.markFailed({
