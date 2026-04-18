@@ -23,7 +23,7 @@ import { PlayerRealtimeEventsConsumer } from "@games/infrastructure/messaging/pl
 import { WalletEventsConsumer } from "@games/infrastructure/messaging/wallet-events.consumer";
 import { LogarithmicRoundTimingStrategy } from "@games/domain/round/round-timing.strategy";
 import { ROUND_TIMING_STRATEGY } from "@games/domain/round/round.tokens";
-import { StartRoundUseCase } from "@games/application/use-cases/start-round.use-case";
+import { StartRoundUseCase } from "@games/application/start-round.use-case";
 import { PlayerRealtimeNotificationQueue } from "@games/application/player-realtime-notification.queue";
 import { BET_REPOSITORY } from "@games/port/bet.repository";
 import { ROUND_REPOSITORY } from "@games/port/round.repository";

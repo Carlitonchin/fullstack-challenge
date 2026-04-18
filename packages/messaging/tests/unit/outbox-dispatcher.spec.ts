@@ -162,7 +162,7 @@ describe("OutboxDispatcherService", () => {
     );
   });
 
-  it("keeps retrying unroutable messages before max attempts is reached", async () => {
+  it("marks unroutable messages immediately without retrying them", async () => {
     const markRetry = mock(async () => undefined);
     const markUnroutable = mock(async () => undefined);
     const service = createService({
@@ -185,16 +185,18 @@ describe("OutboxDispatcherService", () => {
 
     await service.dispatchAvailableMessages("worker-1");
 
-    expect(markRetry).toHaveBeenCalledTimes(1);
-    expect(markUnroutable).toHaveBeenCalledTimes(0);
+    expect(markRetry).toHaveBeenCalledTimes(0);
+    expect(markUnroutable).toHaveBeenCalledTimes(1);
   });
 
-  it("marks unroutable messages as UNROUTABLE only after retries are exhausted", async () => {
+  it("marks unroutable messages as UNROUTABLE even when attempts are already high", async () => {
+    const markRetry = mock(async () => undefined);
     const markFailed = mock(async () => undefined);
     const markUnroutable = mock(async () => undefined);
     const service = createService({
       repository: createRepository({
-        claimBatch: mock(async () => [createMessage({ attempts: 0 })]),
+        claimBatch: mock(async () => [createMessage({ attempts: 99 })]),
+        markRetry,
         markFailed,
         markUnroutable,
       }),
@@ -213,6 +215,7 @@ describe("OutboxDispatcherService", () => {
     await service.dispatchAvailableMessages("worker-1");
 
     expect(markUnroutable).toHaveBeenCalledTimes(1);
+    expect(markRetry).toHaveBeenCalledTimes(0);
     expect(markFailed).toHaveBeenCalledTimes(0);
   });
 
