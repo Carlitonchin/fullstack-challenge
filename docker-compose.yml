@@ -161,16 +161,23 @@ services:
       start_period: 15s
 
   # ---------------------------------------------------------------------------
-  # Frontend (placeholder — candidate implements)
+  # Frontend
   # ---------------------------------------------------------------------------
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     - kong
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:8000
+        VITE_KEYCLOAK_BASE_URL: http://localhost:8080
+        VITE_KEYCLOAK_REALM: crash-game
+        VITE_KEYCLOAK_CLIENT_ID: crash-game-client
+        VITE_KEYCLOAK_REDIRECT_URI: http://localhost:3000/auth/callback
+    ports:
+      - "3000:3000"
+    depends_on:
+      kong:
+        condition: service_healthy
 
 volumes:
   postgres_data:
