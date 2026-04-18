@@ -59,13 +59,13 @@ export function RoundTransparencyPanel({
             isSettled={isSettled}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-x-2">
           <CopyableHash
             hash={fairness.commitment.serverSeedHash}
-            label="Seed Hash"
+            label="Seed Hash | Nonce"
           />
           <span className="text-[10px] text-muted-foreground/50">|</span>
-          <CopyableValue value={fairness.nonce} label="Nonce" />
+          <CopyableValue value={fairness.nonce} label={fairness.nonce} />
           <span className="text-[10px] text-muted-foreground/50">|</span>
           <code className="text-[10px] text-muted-foreground/80 font-mono tabular-nums">
             {countdown}
@@ -224,7 +224,7 @@ export function RoundTransparencyPanel({
                   Verified
                 </Badge>
               </div>
-              <div className="grid grid-cols-5 gap-2 rounded-md bg-muted/20 p-2.5 text-xs">
+<div className="grid grid-cols-5 gap-2 rounded-md bg-muted/20 p-2.5 text-xs">
                 <div className="col-span-2 flex flex-col gap-0.5">
                   <span className="text-[9px] text-muted-foreground/60">Round</span>
                   <CopyableValue
