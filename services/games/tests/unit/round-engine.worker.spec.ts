@@ -4,7 +4,6 @@ import { describe, expect, it } from "bun:test";
 
 import { RoundEngineWorker } from "../../src/application/round-engine.worker";
 import { Round, RoundStatus } from "../../src/domain/round/round";
-import { NEXT_ROUND_DELAY_IN_MS } from "../../src/domain/round/round-timing.strategy";
 
 const CREATED_AT = new Date("2026-04-17T12:00:00.000Z");
 
@@ -87,7 +86,7 @@ describe("RoundEngineWorker", () => {
     expect(nextAt?.getTime()).toBeGreaterThan(CREATED_AT.getTime());
   });
 
-  it("waits 60 seconds after settlement before opening the next round", () => {
+  it("does not keep a settled round parked behind an artificial next-round delay", () => {
     const worker = new RoundEngineWorker(
       {} as never,
       {} as never,
@@ -100,8 +99,9 @@ describe("RoundEngineWorker", () => {
       new Date(settledRound.settlesAt!.getTime() + 1_000),
     ) as Date | null;
 
-    expect(nextAt).toEqual(
-      new Date(settledRound.settlesAt!.getTime() + NEXT_ROUND_DELAY_IN_MS),
+    expect(nextAt).not.toBeNull();
+    expect(nextAt!.getTime()).toBe(
+      settledRound.settlesAt!.getTime() + 1_000 + 500,
     );
   });
 });

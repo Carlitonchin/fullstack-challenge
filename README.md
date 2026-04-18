@@ -1,10 +1,9 @@
-# Crash Platform
+# Fullstack Challenge
+## Carlos Alejandro Arrieta Montes de Oca
 
-Plataforma de crash game em tempo real com autoridade de jogo separada da autoridade monetária, sincronização server-driven e verificação pública do resultado de cada rodada.
+O foco deste documento é detalhar a implementação, quais invariantes foram protegidos, como os fluxos críticos foram modelados e quais trade-offs foram aceitos para manter o sistema coerente.
 
-Este documento não tenta reapresentar a topologia óbvia da solução. A separação entre `games` e `wallets`, o uso de broker, OIDC e WebSocket já fazem parte do contrato funcional da plataforma. O foco aqui é o que esta implementação fez com essas premissas: como os invariantes foram protegidos, como os fluxos críticos foram modelados e quais trade-offs foram aceitos para manter o sistema coerente.
-
-## Resumo Executivo
+## Resumo
 
 O projeto está organizado em dois serviços NestJS (`games` e `wallets`), um frontend React + Vite, RabbitMQ para comunicação assíncrona, PostgreSQL para persistência, Kong como entrada HTTP e Keycloak para autenticação OIDC. Isso por si só não diferencia a solução. O que diferencia é a modelagem interna:
 
@@ -31,24 +30,6 @@ O projeto está organizado em dois serviços NestJS (`games` e `wallets`), um fr
 - Swagger nos dois backends
 - suíte unitária para domínio, query layer, timing, outbox e contrato de mensageria
 - suíte end-to-end via Docker para o fluxo sistêmico do backend
-
-## Arquitetura Base
-
-```text
-Frontend (React + Vite)
-        |
-   HTTP + WebSocket
-        |
-      Kong
-   /games /wallets
-    |           |
-  games <-> RabbitMQ <-> wallets
-    |                         |
- PostgreSQL               PostgreSQL
-        ^
-        |
-    Keycloak
-```
 
 Stack adotada:
 
@@ -123,6 +104,44 @@ Decisões relevantes aqui:
 - duração clampada entre `250ms` e `20s`
 
 Além disso, o backend publica uma `curve` pública com `baseMultiplier`, `growthRate`, `precisionDigits`, `kind` e `version`. O frontend usa exatamente essa curva para interpolar o multiplicador em tela sem inventar uma física paralela à do servidor.
+
+#### O papel do `RoundEngineWorker`
+
+O `RoundEngineWorker` é a peça que transforma esse timing abstrato em transições reais e persistidas. Em outras palavras: a estratégia define o schedule, mas é o worker que reconcilia o relógio atual com o estado da rodada e decide quando efetivamente fechar apostas, iniciar o voo, registrar o crash, liquidar perdas e abrir caminho para a próxima rodada.
+
+Essa responsabilidade ficou concentrada em `games` por uma razão arquitetural importante: o tempo da rodada pertence ao bounded context de jogo. `wallets` confirma ou rejeita movimentos de dinheiro, mas não dita quando uma rodada começa, quando o multiplicador deveria parar nem quando o settlement pode ser publicado.
+
+Internamente, o worker segue um ciclo bem definido:
+
+- inicia automaticamente no bootstrap do módulo
+- mantém um único timer em memória por instância
+- ao acordar, executa `reconcile(now)` dentro de uma transação
+- tenta adquirir um `pg_try_advisory_xact_lock` para impedir que duas instâncias avancem a mesma rodada ao mesmo tempo
+- carrega a rodada atual e executa um loop de reconciliação com múltiplos passos, permitindo “alcançar” o schedule se mais de uma transição já venceu
+- persiste mudanças de `Round` e `Bet` junto com seus eventos de outbox no mesmo contexto transacional
+- só depois do commit publica snapshot, histórico e notificações privadas relevantes
+
+O ponto mais importante aqui é que o worker não é um cron cego nem um loop que “empurra estado” para frente sem olhar consistência. Cada transição continua passando pelos métodos do aggregate `Round`, com checagem de invariantes, e cada mutação relevante gera eventos persistidos antes de qualquer publicação em tempo real.
+
+Na prática, o `RoundEngineWorker` cobre cinco responsabilidades centrais:
+
+- criar uma nova rodada quando não existe rodada corrente útil
+- fechar a janela de apostas em `BETTING_OPEN`
+- iniciar a rodada em `BETTING_CLOSED`
+- registrar o crash em `IN_PROGRESS` e marcar bets aceitas como `LOST`
+- executar o settlement final, consolidando bets perdidas e liberando a publicação de histórico
+
+O método `resolveNextWakeUp` também merece atenção porque ele explicita que o agendamento futuro deriva do próprio estado da rodada:
+
+- `WAITING_FOR_FIRST_BET` agenda nova checagem curta
+- `BETTING_OPEN` acorda no `bettingClosesAt`
+- `BETTING_CLOSED` acorda no `startsAt`
+- `IN_PROGRESS` acorda no `scheduledCrashAt`
+- `CRASHED` acorda no `settlesAt`
+- `SETTLED` só faz um retry curto; na prática a próxima rodada já é criada sem espera artificial no próprio ciclo de reconciliação
+- `ERROR` retorna `null` e interrompe o scheduler
+
+Esse último ponto é um detalhe de qualidade importante: quando a rodada entra em `ERROR`, o worker não tenta “seguir em frente”. Ele para o agendamento e torna explícito que o sistema entrou em contenção. Isso evita mascarar inconsistências monetárias ou temporais com uma falsa sensação de normalidade.
 
 ### 5. Provably fair tratado como domínio versionado
 
@@ -379,21 +398,3 @@ Cobertura mais relevante hoje:
 - `ERROR` é um bom estado de contenção, porém ainda não existe uma trilha administrativa completa para reconciliação manual
 - o bundle do frontend ainda merece code splitting; o build passa, mas o Vite já alerta para chunk principal acima de `500 kB`
 - a estratégia de provably fair já é versionável, mas hoje existe uma única implementação concreta
-
-## Pontos de Referência no Código
-
-- `services/games/src/domain/round/round.ts`
-- `services/games/src/domain/bet/bet.ts`
-- `services/games/src/domain/round/round-timing.strategy.ts`
-- `services/games/src/domain/provably-fair/casino-crash-provably-fair.strategy.ts`
-- `services/games/src/application/game-command.service.ts`
-- `services/games/src/application/game-query.service.ts`
-- `services/games/src/application/round-engine.worker.ts`
-- `services/wallets/src/domain/wallet/wallet.ts`
-- `services/wallets/src/infrastructure/repository/wallet.repository.ts`
-- `services/wallets/src/infrastructure/migrations/Migration20260416011113.ts`
-- `packages/messaging/src/outbox-dispatcher.service.ts`
-- `packages/messaging/src/contracts/money-flow.ts`
-- `frontend/src/hooks/use-game-queries.ts`
-- `frontend/src/lib/auth.ts`
-- `frontend/src/lib/round-curve.ts`

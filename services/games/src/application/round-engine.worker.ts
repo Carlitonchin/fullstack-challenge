@@ -10,7 +10,6 @@ import { GameOutboxService } from "@games/application/game-outbox.service";
 import { GameRealtimePublisher } from "@games/application/game-realtime.publisher";
 import { RoundFactoryService } from "@games/application/round-factory.service";
 import { Round, RoundStatus } from "@games/domain/round/round";
-import { NEXT_ROUND_DELAY_IN_MS } from "@games/domain/round/round-timing.strategy";
 import { BetRepository } from "@games/infrastructure/repository/bet.repository";
 import { RoundRepository } from "@games/infrastructure/repository/round.repository";
 import { GameOutboxMessageSchema } from "@games/infrastructure/schema/game-outbox-message";
@@ -447,11 +446,7 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
     }
 
     if (currentRound.status === RoundStatus.SETTLED) {
-      if (currentRound.settlesAt === null) {
-        return new Date(now.getTime() + ENGINE_RETRY_DELAY_IN_MS);
-      }
-
-      return new Date(currentRound.settlesAt.getTime() + NEXT_ROUND_DELAY_IN_MS);
+      return new Date(now.getTime() + ENGINE_RETRY_DELAY_IN_MS);
     }
 
     return new Date(now.getTime() + ENGINE_RETRY_DELAY_IN_MS);
