@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { EyeIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -40,13 +41,12 @@ export function RoundTransparencyPanel({
   }
 
   const fairness = round.fairness
-  const countdown = isPreRound ? resolveCountdownLabel(round, displayNow) : ""
   const previousRoundProof = fairness.previousRoundProof
 
   return (
     <Card className="col-span-full overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-border/50 px-4 py-2.5">
-        <div className="flex items-center gap-3">
+      <CardHeader className="flex flex-col gap-2 border-b border-border/50 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-2">
             <div className="size-1.5 rounded-full bg-primary/60 animate-pulse" />
             <span className="text-[10px] tracking-widest uppercase text-muted-foreground">
@@ -59,27 +59,27 @@ export function RoundTransparencyPanel({
             isSettled={isSettled}
           />
         </div>
-        <div className="flex items-center gap-x-2">
-          <CopyableHash
-            hash={fairness.commitment.serverSeedHash}
-            label="Seed Hash | Nonce"
-          />
-          <span className="text-[10px] text-muted-foreground/50">|</span>
-          <CopyableValue value={fairness.nonce} label={fairness.nonce} />
-          <span className="text-[10px] text-muted-foreground/50">|</span>
-          <code className="text-[10px] text-muted-foreground/80 font-mono tabular-nums">
-            {countdown}
-          </code>
+        <div className="flex min-w-0 flex-col gap-1 lg:items-end">
+          <div className="flex min-w-0 flex-col gap-1 lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-2 lg:gap-y-1 lg:justify-end">
+            <CopyableHash
+              hash={fairness.commitment.serverSeedHash}
+              label="Seed Hash"
+            />
+            <span className="hidden text-[10px] text-muted-foreground/50 lg:inline">
+              |
+            </span>
+            <CopyableValueWithLabel value={fairness.nonce} label="Nonce" />
+          </div>
         </div>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-3 p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
+            className="h-auto w-fit p-0 text-left text-xs text-muted-foreground hover:text-foreground"
           >
             How this round is fixed
             <svg
@@ -95,31 +95,12 @@ export function RoundTransparencyPanel({
             </svg>
           </Button>
 
-          {previousRoundProof && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelectedRoundId(previousRoundProof.roundId)}
-              className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
-            >
-              Previous round proof
-              <svg
-                className="ml-1 size-3"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                viewBox="0 0 24 24"
-              >
-                <path d="M9 18l6-6-6-6" />
-              </svg>
-            </Button>
-          )}
         </div>
 
         {isExpanded && (
           <>
-            <div className="grid grid-cols-4 gap-4 rounded-md border border-border/30 bg-muted/20 p-3">
-              <div className="col-span-2 grid grid-cols-2 gap-3">
+            <div className="grid gap-4 rounded-md border border-border/30 bg-muted/20 p-3 lg:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <FairnessInfoItem
                   label="Strategy"
                   value={fairness.strategy.strategyDisplayName}
@@ -137,7 +118,7 @@ export function RoundTransparencyPanel({
                   value={fairness.strategy.outcomeAlgorithm}
                 />
               </div>
-              <div className="col-span-2 flex flex-col gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <FairnessInfoItem
                   label="Curve"
                   value={`${fairness.curve.kind} v${fairness.curve.version}`}
@@ -158,15 +139,15 @@ export function RoundTransparencyPanel({
             </div>
 
             <div className="flex flex-col gap-2 rounded-md bg-muted/20 p-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                   Verification Formula
                 </span>
-                <span className="text-[10px] text-muted-foreground/60">
+                <span className="text-[10px] text-muted-foreground/60 sm:text-right">
                   Published {new Date(fairness.timeline.publishedAt).toLocaleTimeString()}
                 </span>
               </div>
-              <code className="break-all text-xs font-mono text-chart-1">
+              <code className="overflow-x-auto whitespace-pre-wrap break-all text-xs font-mono text-chart-1">
                 {fairness.strategy.verificationFormula}
               </code>
             </div>
@@ -213,26 +194,41 @@ export function RoundTransparencyPanel({
           <>
             <Separator className="my-1" />
             <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRoundId(previousRoundProof.roundId)}
+                      className="order-1 w-fit sm:order-2"
+                    >
+                      <Badge
+                        variant="secondary"
+                        className="flex w-fit cursor-pointer items-center gap-1 bg-emerald-500/10 text-[10px] text-emerald-600 transition-colors hover:bg-emerald-500/15"
+                      >
+                        Verified
+                        <EyeIcon className="size-3.5" />
+                        <span className="sr-only">View previous round proof details</span>
+                      </Badge>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    View previous round proof details
+                  </TooltipContent>
+                </Tooltip>
+                <span className="order-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground sm:order-1">
                   Previous Round Verified
                 </span>
-                <Badge
-                  variant="secondary"
-                  className="bg-emerald-500/10 text-[10px] text-emerald-600"
-                >
-                  Verified
-                </Badge>
               </div>
-              <div className="grid grid-cols-5 gap-2 rounded-md bg-muted/20 p-2.5 text-xs">
-                <div className="col-span-2 flex flex-col gap-0.5">
+              <div className="grid gap-2 rounded-md bg-muted/20 p-2.5 text-xs sm:grid-cols-2 lg:grid-cols-5">
+                <div className="flex flex-col gap-0.5 sm:col-span-1 lg:col-span-2">
                   <span className="text-[9px] text-muted-foreground/60">Nonce</span>
                   <CopyableValue
                     value={previousRoundProof.nonce}
                     label={previousRoundProof.nonce}
                   />
                 </div>
-                <div className="col-span-2 flex flex-col gap-0.5">
+                <div className="flex flex-col gap-0.5 sm:col-span-1 lg:col-span-2">
                   <span className="text-[9px] text-muted-foreground/60">Seed</span>
                   <CopyableValue
                     value={truncateHash(previousRoundProof.serverSeed, 6)}
@@ -267,29 +263,6 @@ function isPreRoundStatus(status: Round["status"]): boolean {
     status === "BETTING_OPEN" ||
     status === "BETTING_CLOSED"
   )
-}
-
-function resolveCountdownLabel(round: Round, displayNow: number): string {
-  if (round.status === "BETTING_OPEN" && round.bettingClosesAt) {
-    return formatRemainingTime(
-      new Date(round.bettingClosesAt).getTime() - displayNow,
-    )
-  }
-
-  if (round.status === "BETTING_CLOSED" && round.startsAt) {
-    return formatRemainingTime(new Date(round.startsAt).getTime() - displayNow)
-  }
-
-  if (round.status === "WAITING_FOR_FIRST_BET") {
-    return "Awaiting first bet"
-  }
-
-  return ""
-}
-
-function formatRemainingTime(remainingInMs: number): string {
-  const seconds = Math.max(0, Math.ceil(remainingInMs / 1000))
-  return `${seconds}s`
 }
 
 function FairnessStatusBadge({
@@ -341,18 +314,18 @@ function CopyableHash({
   }
 
   return (
-    <div className="flex items-center gap-1 leading-none">
+    <div className="flex min-w-0 items-center gap-1 leading-none">
       <span className="text-[10px] leading-none text-muted-foreground/70">{label}:</span>
       <Tooltip>
         <TooltipTrigger asChild>
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="inline-flex w-fit items-center text-left leading-none"
-        >
-          <code className="cursor-pointer text-[10px] font-mono leading-none text-chart-1 hover:underline">
-            {truncateHash(hash, 8)}
-          </code>
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="inline-flex min-w-0 max-w-full items-center text-left leading-none"
+          >
+            <code className="max-w-full truncate cursor-pointer text-[10px] font-mono leading-none text-chart-1 hover:underline">
+              {truncateHash(hash, 8)}
+            </code>
           </button>
         </TooltipTrigger>
         <TooltipContent side="bottom">
@@ -392,9 +365,11 @@ function CopyableValue({
         <button
           type="button"
           onClick={handleCopy}
-          className="inline-flex w-fit cursor-pointer items-center text-left leading-none hover:underline"
+          className="inline-flex min-w-0 max-w-full cursor-pointer items-center text-left leading-none hover:underline"
         >
-          <span className="text-[10px] font-mono leading-none text-chart-1">{value}</span>
+          <span className="max-w-full truncate text-[10px] font-mono leading-none text-chart-1">
+            {value}
+          </span>
         </button>
       </TooltipTrigger>
       <TooltipContent side="bottom">
@@ -408,6 +383,27 @@ function CopyableValue({
         </div>
       </TooltipContent>
     </Tooltip>
+  )
+}
+
+function CopyableValueWithLabel({
+  value,
+  label,
+  tooltipValue,
+}: {
+  value: string
+  label: string
+  tooltipValue?: string
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-1 leading-none">
+      <span className="text-[10px] leading-none text-muted-foreground/70">{label}:</span>
+      <CopyableValue
+        value={value}
+        label={value}
+        tooltipValue={tooltipValue}
+      />
+    </div>
   )
 }
 
