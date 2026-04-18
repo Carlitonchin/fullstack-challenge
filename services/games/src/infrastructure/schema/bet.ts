@@ -31,8 +31,10 @@ export const BetSchema = defineEntity({
   ],
   uniques: [
     {
-      name: "bets_round_id_player_id_unique",
-      properties: ["round", "playerId"],
+      name: "bets_round_id_player_id_active_unique",
+      expression:
+        `create unique index "bets_round_id_player_id_active_unique" on "bets" ("round_id", "player_id") ` +
+        `where "status" <> 'REJECTED'`,
     },
   ],
   properties: {

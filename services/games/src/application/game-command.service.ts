@@ -95,7 +95,7 @@ export class GameCommandService {
     }
 
     const round = await this.getActiveRound(placedAt);
-    const existingBetResult = await this.betRepository.findByPlayerIdAndRoundId(
+    const existingBetResult = await this.betRepository.findCurrentByPlayerIdAndRoundId(
       playerId,
       round.id,
     );
@@ -583,7 +583,7 @@ export class GameCommandService {
     playerId: string,
     roundId: string,
   ): Promise<Bet> {
-    const betResult = await this.betRepository.findByPlayerIdAndRoundId(
+    const betResult = await this.betRepository.findCurrentByPlayerIdAndRoundId(
       playerId,
       roundId,
     );
@@ -625,7 +625,8 @@ export class GameCommandService {
         params?.duplicateBetMessage &&
         error instanceof UniqueConstraintViolationException &&
         typeof error.message === "string" &&
-        error.message.includes("bets_round_id_player_id_unique")
+        (error.message.includes("bets_round_id_player_id_active_unique") ||
+          error.message.includes("bets_round_id_player_id_unique"))
       ) {
         throw new ConflictException(params.duplicateBetMessage);
       }

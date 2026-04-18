@@ -97,7 +97,10 @@ function createService(params: {
     },
   };
   const betRepository: IBetRepository = {
-    findByPlayerIdAndRoundId: async () => ({ success: true, data: params.bet }),
+    findCurrentByPlayerIdAndRoundId: async () => ({
+      success: true,
+      data: params.bet.isRejected ? undefined : params.bet,
+    }),
     findByRoundId: async () => ({ success: true, data: [params.bet] }),
     findByPlayerId: async () => ({ success: true, data: [params.bet] }),
     findById: async (id: string) => ({

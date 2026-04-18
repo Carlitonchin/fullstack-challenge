@@ -16,6 +16,7 @@ import { Migration20260417190000 } from "./infrastructure/migrations/Migration20
 import { Migration20260417212904 } from "./infrastructure/migrations/Migration20260417212904";
 import { Migration20260417214447 } from "./infrastructure/migrations/Migration20260417214447";
 import { Migration20260417214631 } from "./infrastructure/migrations/Migration20260417214631";
+import { Migration20260418124912 } from "./infrastructure/migrations/Migration20260418124912";
 
 export default defineConfig({
   clientUrl: process.env.DATABASE_URL,
@@ -42,7 +43,8 @@ export default defineConfig({
       Migration20260417190000,
       Migration20260417212904,
       Migration20260417214447,
-      Migration20260417214631
+      Migration20260417214631,
+      Migration20260418124912
     ],
   },
 });

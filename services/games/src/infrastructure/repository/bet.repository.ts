@@ -16,13 +16,14 @@ import { BetSchema, BetStatusType, type IBet } from "../schema/bet";
 export class BetRepository implements IBetRepository {
   constructor(private readonly em: EntityManager) {}
 
-  async findByPlayerIdAndRoundId(
+  async findCurrentByPlayerIdAndRoundId(
     playerId: string,
     roundId: string,
   ): Promise<BetRepositoryResult<Bet | undefined>> {
     const record = await this.em.findOne(BetSchema, {
       playerId,
       round: roundId,
+      status: { $ne: BetStatusType.REJECTED },
     });
 
     if (!record) {

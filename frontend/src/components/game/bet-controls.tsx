@@ -44,7 +44,18 @@ export function BetControls({
   const [error, setError] = useState<string | null>(null)
 
   const currentRoundBet = useMemo(
-    () => myBets?.find((bet) => bet.roundId === round?.id),
+    () =>
+      myBets?.find(
+        (bet) => bet.roundId === round?.id && bet.status !== "REJECTED",
+      ),
+    [myBets, round?.id],
+  )
+
+  const latestRejectedRoundBet = useMemo(
+    () =>
+      myBets?.find(
+        (bet) => bet.roundId === round?.id && bet.status === "REJECTED",
+      ),
     [myBets, round?.id],
   )
 
@@ -286,8 +297,10 @@ export function BetControls({
           </Button>
         )}
 
-        {currentRoundBet?.status === "REJECTED" && currentRoundBet.rejectionReason && (
-          <p className="mt-3 text-xs text-destructive">{currentRoundBet.rejectionReason}</p>
+        {!currentRoundBet && latestRejectedRoundBet?.rejectionReason && (
+          <p className="mt-3 text-xs text-destructive">
+            {latestRejectedRoundBet.rejectionReason}
+          </p>
         )}
 
         {wallet && (

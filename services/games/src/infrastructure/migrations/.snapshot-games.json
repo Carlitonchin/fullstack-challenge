@@ -1511,15 +1511,13 @@
           "unique": false
         },
         {
-          "keyName": "bets_round_id_player_id_unique",
-          "columnNames": [
-            "round_id",
-            "player_id"
-          ],
-          "composite": true,
+          "keyName": "bets_round_id_player_id_active_unique",
+          "columnNames": [],
+          "composite": false,
           "constraint": true,
           "primary": false,
-          "unique": true
+          "unique": true,
+          "expression": "create unique index \"bets_round_id_player_id_active_unique\" on \"bets\" (\"round_id\", \"player_id\") where \"status\" <> 'REJECTED'"
         },
         {
           "keyName": "bets_pkey",

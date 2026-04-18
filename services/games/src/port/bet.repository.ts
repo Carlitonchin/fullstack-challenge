@@ -15,7 +15,7 @@ export class BetVersionConflictError {
 }
 
 export interface IBetRepository {
-  findByPlayerIdAndRoundId(
+  findCurrentByPlayerIdAndRoundId(
     playerId: string,
     roundId: string,
   ): Promise<BetRepositoryResult<Bet | undefined>>;
