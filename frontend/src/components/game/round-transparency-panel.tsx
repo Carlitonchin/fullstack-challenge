@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import {
   Tooltip,
@@ -27,12 +27,20 @@ export function RoundTransparencyPanel({
   const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null)
   const displayNow = useSyncedNow(serverTime, round?.id)
 
-  if (!round || !isPreRoundStatus(round.status)) {
+  if (!round) {
+    return null
+  }
+
+  const isPreRound = isPreRoundStatus(round.status)
+  const isRunning = round.status === "IN_PROGRESS"
+  const isSettled = round.status === "CRASHED" || round.status === "SETTLED"
+
+  if (round.status === "ERROR" || (round.status === "WAITING_FOR_FIRST_BET" && !round.serverSeedHash)) {
     return null
   }
 
   const fairness = round.fairness
-  const countdown = resolveCountdownLabel(round, displayNow)
+  const countdown = isPreRound ? resolveCountdownLabel(round, displayNow) : ""
   const previousRoundProof = fairness.previousRoundProof
 
   return (
@@ -47,7 +55,8 @@ export function RoundTransparencyPanel({
           </div>
           <FairnessStatusBadge
             isRevealed={fairness.commitment.isSeedRevealed}
-            status={round.status}
+            isRunning={isRunning}
+            isSettled={isSettled}
           />
         </div>
         <div className="flex items-center gap-2">
@@ -284,15 +293,25 @@ function formatRemainingTime(remainingInMs: number): string {
 
 function FairnessStatusBadge({
   isRevealed,
-  status,
+  isRunning,
+  isSettled,
 }: {
   isRevealed: boolean
-  status: Round["status"]
+  isRunning: boolean
+  isSettled: boolean
 }) {
-  if (isRevealed || status === "CRASHED" || status === "SETTLED") {
+  if (isRevealed && isSettled) {
     return (
       <Badge variant="secondary" className="bg-emerald-500/10 text-[9px] text-emerald-600">
         Seed revealed
+      </Badge>
+    )
+  }
+
+  if (isRunning) {
+    return (
+      <Badge variant="outline" className="animate-pulse text-[9px]">
+        Running
       </Badge>
     )
   }
