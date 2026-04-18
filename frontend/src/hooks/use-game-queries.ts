@@ -16,7 +16,7 @@ import type {
   Wallet,
   WalletBalanceUpdated,
 } from "@/lib/api"
-import { ensureValidAccessToken } from "@/lib/auth"
+import { ensureValidAccessToken, redirectToLogin } from "@/lib/auth"
 
 const SNAPSHOT_QUERY_KEY = ["game", "snapshot"] as const
 const HISTORY_QUERY_KEY = ["game", "history"] as const
@@ -65,6 +65,7 @@ export function useGameRealtime(playerId?: string) {
   useEffect(() => {
     let socket: ReturnType<typeof io> | null = null
     let cancelled = false
+    let reconnectingWithFreshToken = false
 
     function reconcilePrivateState() {
       void queryClient.invalidateQueries({ queryKey: WALLET_QUERY_KEY })
@@ -107,6 +108,39 @@ export function useGameRealtime(playerId?: string) {
       }
     }
 
+    async function updateSocketAuthToken(): Promise<boolean> {
+      const token = await ensureValidAccessToken()
+
+      if (cancelled || !socket) {
+        return false
+      }
+
+      socket.auth = { token }
+      return true
+    }
+
+    async function reconnectWithFreshToken() {
+      if (reconnectingWithFreshToken) {
+        return
+      }
+
+      reconnectingWithFreshToken = true
+
+      try {
+        const canReconnect = await updateSocketAuthToken()
+
+        if (!cancelled && canReconnect) {
+          socket?.connect()
+        }
+      } catch {
+        if (!cancelled) {
+          redirectToLogin()
+        }
+      } finally {
+        reconnectingWithFreshToken = false
+      }
+    }
+
     async function connectRealtime() {
       const token = await ensureValidAccessToken()
 
@@ -124,6 +158,16 @@ export function useGameRealtime(playerId?: string) {
       })
 
       socket.on("connect", reconcilePrivateState)
+
+      socket.on("disconnect", (reason) => {
+        if (reason === "io server disconnect") {
+          void reconnectWithFreshToken()
+        }
+      })
+
+      socket.io.on("reconnect_attempt", () => {
+        void updateSocketAuthToken().catch(() => undefined)
+      })
 
       socket.io.on("reconnect", reconcilePrivateState)
 
@@ -155,7 +199,11 @@ export function useGameRealtime(playerId?: string) {
       })
     }
 
-    void connectRealtime().catch(() => undefined)
+    void connectRealtime().catch(() => {
+      if (!cancelled) {
+        redirectToLogin()
+      }
+    })
 
     return () => {
       cancelled = true

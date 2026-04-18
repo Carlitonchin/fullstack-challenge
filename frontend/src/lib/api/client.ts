@@ -2,6 +2,7 @@ import {
   ensureValidAccessToken,
   getAuthenticatedPlayer,
   redirectToLogin,
+  refreshAuthSession,
 } from "@/lib/auth"
 import type {
   Bet,
@@ -89,7 +90,7 @@ async function sendRequest<T>(
 
   if (auth && response.status === 401 && !retried) {
     try {
-      // await refreshAuthSession()
+      await refreshAuthSession()
       return sendRequest<T>(path, { method, auth, body }, true)
     } catch {
       redirectToLogin()
