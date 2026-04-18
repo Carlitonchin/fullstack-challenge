@@ -139,7 +139,7 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
         let currentRound = currentRoundResult.data;
 
         for (let iteration = 0; iteration < MAX_RECONCILE_STEPS; iteration += 1) {
-          if (!currentRound) {
+          if (!currentRound || currentRound.isSettled || currentRound.isError) {
             currentRound = await this.roundFactoryService.createRound({
               createdAt: now,
               entityManager: txEm,
@@ -152,20 +152,6 @@ export class RoundEngineWorker implements OnModuleInit, OnModuleDestroy {
             });
             publishSnapshot = true;
             continue;
-          }
-
-          if (currentRound.isSettled) {
-            break;
-          }
-
-          if (currentRound.isError) {
-            await txEm.flush();
-            return {
-              nextAt: null,
-              publishSnapshot,
-              publishHistory,
-              betIdsToPublish: Array.from(betIdsToPublish),
-            };
           }
 
           if (currentRound.shouldCloseBetting(now)) {
