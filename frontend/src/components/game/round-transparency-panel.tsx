@@ -1,5 +1,4 @@
 import { useState } from "react"
-import { EyeIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -10,29 +9,24 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { toast } from "sonner"
-import { useSyncedNow } from "@/hooks/use-synced-now"
 import type { Round } from "@/lib/api"
 import { formatMultiplier, truncateHash } from "@/lib/format"
 import { VerificationModal } from "./verification-modal"
 
 interface RoundTransparencyPanelProps {
   round: Round | undefined
-  serverTime: string | undefined
 }
 
 export function RoundTransparencyPanel({
   round,
-  serverTime,
 }: RoundTransparencyPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null)
-  const displayNow = useSyncedNow(serverTime, round?.id)
 
   if (!round) {
     return null
   }
 
-  const isPreRound = isPreRoundStatus(round.status)
   const isRunning = round.status === "IN_PROGRESS"
   const isSettled = round.status === "CRASHED" || round.status === "SETTLED"
 
@@ -225,14 +219,6 @@ export function RoundTransparencyPanel({
   )
 }
 
-function isPreRoundStatus(status: Round["status"]): boolean {
-  return (
-    status === "WAITING_FOR_FIRST_BET" ||
-    status === "BETTING_OPEN" ||
-    status === "BETTING_CLOSED"
-  )
-}
-
 function FairnessStatusBadge({
   isRevealed,
   isRunning,
@@ -333,9 +319,9 @@ function CopyableValue({
         <button
           type="button"
           onClick={handleCopy}
-          className="inline-flex min-w-0 max-w-full cursor-pointer items-center text-left leading-none hover:underline"
+          className="inline-flex w-fit min-w-0 max-w-full self-start cursor-pointer items-center text-left leading-none hover:underline"
         >
-          <span className="max-w-full truncate text-[10px] font-mono leading-none text-chart-1">
+          <span className="max-w-full truncate text-xs font-mono leading-none text-chart-1">
             {value}
           </span>
         </button>

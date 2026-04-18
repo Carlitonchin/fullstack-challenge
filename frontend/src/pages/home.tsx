@@ -115,7 +115,6 @@ export default function HomePage() {
           <div className="lg:col-span-8">
             <RoundTransparencyPanel
               round={currentRound}
-              serverTime={snapshotQuery.data?.serverTime}
             />
           </div>
 
