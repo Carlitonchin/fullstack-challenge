@@ -1,5 +1,4 @@
 import { useState } from "react"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import {
   Tooltip,
   TooltipContent,
@@ -58,7 +57,7 @@ export function RoundHistory({ rounds, isLoading }: RoundHistoryProps) {
 
   return (
     <>
-      <ScrollArea className="w-full">
+      <div className="w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex gap-1.5 px-1 py-1">
           {rounds.map((round) => (
             <Tooltip key={round.id}>
@@ -87,8 +86,7 @@ export function RoundHistory({ rounds, isLoading }: RoundHistoryProps) {
             </Tooltip>
           ))}
         </div>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
+      </div>
 
       <VerificationModal
         roundId={selectedRoundId ?? ""}
