@@ -149,6 +149,21 @@ O projeto extraiu a infraestrutura de mensageria para `packages/messaging`. Esse
 
 O ganho aqui não é “ter um pacote compartilhado”. O ganho é evitar divergência de envelope, status de outbox e semântica de retry entre os serviços.
 
+#### Por que não implementei inbox persistido
+
+O projeto não implementa um `inbox` genérico para registrar todo evento consumido. Isso foi uma decisão intencional, não uma lacuna acidental.
+
+Neste desafio, o problema principal de consistência estava no lado monetário. Por isso a proteção contra redelivery foi colocada diretamente onde o efeito crítico acontece:
+
+- `wallets` deduplica débitos, créditos e refunds por `operation_id`
+- `wallet_operations.operation_id` é único no banco
+- o aggregate `Wallet` rejeita reaplicação semântica da mesma operação
+- `games` também protege transições por estado terminal, optimistic locking e invariantes de `Bet` e `Round`
+
+Na prática, isso significa que receber o mesmo evento mais de uma vez não muda o resultado final do sistema para os fluxos críticos já cobertos. Eu preferi essa abordagem porque ela resolve o problema no ponto do efeito de negócio, com menos infraestrutura adicional, menos tabelas operacionais e menos acoplamento entre consumers e o mecanismo de deduplicação.
+
+Um `inbox` faria mais sentido se o sistema tivesse mais handlers com efeitos não idempotentes, integrações externas difíceis de repetir com segurança, ou uma necessidade forte de auditoria genérica sobre cada mensagem consumida. Para o escopo atual, considerei mais honesto manter a solução apoiada em idempotência explícita de domínio e restrições de persistência do que introduzir uma abstração extra só para marcar mensagens como processadas.
+
 ### 7. Concorrência protegida no domínio e no banco
 
 O projeto não depende só de botão desabilitado no frontend.
@@ -370,7 +385,12 @@ Cobertura mais relevante hoje:
 - contrato compartilhado de mensageria
 - fluxo sistêmico Docker-backed do backend
 
+Os testes end-to-end foram posicionados em `services/games/tests/e2e` de forma intencional. Eu tratei `games` como o contexto que conduz o fluxo principal do produto: ele recebe a ação do jogador, orquestra o ciclo da rodada, dispara os comandos monetários assíncronos e observa as confirmações que voltam de `wallets`.
+
+Isso não significa que a suíte E2E valida apenas `games`. Na prática, ela cobre o comportamento integrado de `wallets` também, porque os cenários só passam quando o débito, o crédito, os refunds, a idempotência monetária e a atualização real de saldo funcionam corretamente através do broker e da persistência. A escolha foi organizacional: manter a suíte sistêmica no bounded context que inicia e coordena a jornada principal, sem duplicar cenários atravessando os dois serviços.
+
 ## Trade-offs e Backlog Técnico
 
 - o scheduler de rodada roda dentro de `games`; para a escala atual isso simplifica operação, mas um processo dedicado pode fazer sentido se a plataforma crescer
+- não implementei `inbox` persistido porque os consumers críticos já são protegidos por idempotência de domínio e unicidade no banco; se o número de handlers não idempotentes crescer, essa decisão deve ser revisitada
 - `ERROR` é um bom estado de contenção, porém ainda não existe uma trilha administrativa completa para reconciliação manual
