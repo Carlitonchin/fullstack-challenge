@@ -85,46 +85,48 @@ export default function HomePage() {
 
       {/* Main content */}
       <main className="relative z-10 mx-auto max-w-7xl px-4 py-4 lg:px-6 lg:py-6">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6">
-          <div className="lg:col-span-8 flex flex-col gap-4 lg:gap-6">
-            <div className="order-2 lg:order-1">
-              <CrashChart
+        <div className="mx-auto w-full max-w-2xl lg:max-w-none">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6">
+            <div className="lg:col-span-8 flex flex-col gap-4 lg:gap-6">
+              <div className="order-2 lg:order-1">
+                <CrashChart
+                  round={currentRound}
+                  serverTime={snapshotQuery.data?.serverTime}
+                  isLoading={snapshotQuery.isLoading}
+                />
+              </div>
+
+              <div className="order-1 lg:order-2">
+                <RoundTransparencyPanel
+                  round={currentRound}
+                />
+              </div>
+            </div>
+
+            <div className="lg:col-span-4 flex flex-col gap-4 lg:gap-6">
+              <BetControls
                 round={currentRound}
                 serverTime={snapshotQuery.data?.serverTime}
+                myBets={myBets}
+                wallet={walletQuery.data}
+                isLoadingRound={snapshotQuery.isLoading}
+                isLoadingWallet={walletQuery.isLoading}
+                isLoadingMyBets={myBetsQuery.isLoading}
+              />
+
+              <MyBets
+                bets={myBets}
+                isLoading={myBetsQuery.isLoading}
+                hasNextPage={myBetsQuery.hasNextPage}
+                isFetchingNextPage={myBetsQuery.isFetchingNextPage}
+                onLoadMore={() => void myBetsQuery.fetchNextPage()}
+              />
+
+              <CurrentBets
+                bets={currentBets}
                 isLoading={snapshotQuery.isLoading}
               />
             </div>
-
-            <div className="order-1 lg:order-2">
-              <RoundTransparencyPanel
-                round={currentRound}
-              />
-            </div>
-          </div>
-
-          <div className="lg:col-span-4 flex flex-col gap-4 lg:gap-6">
-            <BetControls
-              round={currentRound}
-              serverTime={snapshotQuery.data?.serverTime}
-              myBets={myBets}
-              wallet={walletQuery.data}
-              isLoadingRound={snapshotQuery.isLoading}
-              isLoadingWallet={walletQuery.isLoading}
-              isLoadingMyBets={myBetsQuery.isLoading}
-            />
-
-            <MyBets
-              bets={myBets}
-              isLoading={myBetsQuery.isLoading}
-              hasNextPage={myBetsQuery.hasNextPage}
-              isFetchingNextPage={myBetsQuery.isFetchingNextPage}
-              onLoadMore={() => void myBetsQuery.fetchNextPage()}
-            />
-
-            <CurrentBets
-              bets={currentBets}
-              isLoading={snapshotQuery.isLoading}
-            />
           </div>
         </div>
       </main>
