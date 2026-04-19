@@ -29,6 +29,7 @@ O projeto está organizado em dois serviços NestJS (`games` e `wallets`), um fr
 - atualização em tempo real por Socket.IO
 - Swagger nos dois backends
 - suíte unitária para domínio, query layer, timing, outbox e contrato de mensageria
+- GitHub Actions validando a suíte unitária em `push` e `pull_request` para `main`
 - suíte end-to-end via Docker para o fluxo sistêmico do backend
 
 Stack adotada:
@@ -363,6 +364,12 @@ Arquivo base:
 - `frontend/.env.example`
 
 ## Validação
+
+GitHub Actions:
+
+- workflow `Test Suite` executado em `push` e `pull_request` para `main`
+- instalação do workspace com `bun install --frozen-lockfile`
+- execução automática das suítes unitárias de `services/games`, `services/wallets` e `packages/messaging`
 
 Comandos usuais:
 
