@@ -1,5 +1,7 @@
 export { OutboxStatus } from "@crash/persistence";
 export * from "./amqp-broker.publisher";
+export * from "./consumer-errors";
+export * from "./consumer-topology";
 export * from "./contracts/money-flow";
 export * from "./errors";
 export * from "./messaging-outbox.module";
@@ -7,6 +9,7 @@ export * from "./outbox-dispatcher.service";
 export * from "./outbox-message";
 export * from "./outbox-publisher.worker";
 export * from "./postgres-outbox.repository";
+export * from "./resilient-amqp-consumer";
 export * from "./runtime-config";
 export * from "./system-clock";
 export * from "./tokens";
