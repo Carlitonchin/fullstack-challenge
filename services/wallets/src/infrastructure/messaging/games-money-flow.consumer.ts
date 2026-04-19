@@ -1,9 +1,3 @@
-import {
-  type Channel,
-  type ChannelModel,
-  type ConsumeMessage,
-  connect,
-} from "amqplib";
 import { MikroORM, RequestContext } from "@mikro-orm/core";
 import {
   Injectable,
@@ -19,17 +13,23 @@ import {
   type BetRefundRequestedData,
   type BrokerEnvelope,
   type CashoutCreditRequestedData,
+  ResilientAmqpConsumer,
 } from "@crash/messaging";
 import { WalletMoneyFlowService } from "@wallets/application/wallet-money-flow.service";
 
 const GAMES_DOMAIN_EXCHANGE = "games.domain";
 const GAMES_MONEY_FLOW_QUEUE = "wallets.money-flow";
+const MONEY_FLOW_PREFETCH = 4;
+const SUPPORTED_MONEY_FLOW_EVENTS = [
+  BET_DEBIT_REQUESTED,
+  BET_REFUND_REQUESTED,
+  CASHOUT_CREDIT_REQUESTED,
+] as const;
 
 @Injectable()
 export class GamesMoneyFlowConsumer implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(GamesMoneyFlowConsumer.name);
-  private connection: ChannelModel | null = null;
-  private channel: Channel | null = null;
+  private consumer: ResilientAmqpConsumer | null = null;
 
   constructor(
     private readonly orm: MikroORM,
@@ -46,71 +46,48 @@ export class GamesMoneyFlowConsumer implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    this.connection = await connect(rabbitMqUrl);
-    this.channel = await this.connection.createChannel();
-    await this.channel.assertExchange(GAMES_DOMAIN_EXCHANGE, "topic", {
-      durable: true,
+    this.consumer = new ResilientAmqpConsumer({
+      name: GAMES_MONEY_FLOW_QUEUE,
+      rabbitMqUrl,
+      queueName: GAMES_MONEY_FLOW_QUEUE,
+      prefetch: MONEY_FLOW_PREFETCH,
+      supportedEventTypes: SUPPORTED_MONEY_FLOW_EVENTS,
+      logger: this.logger,
+      bindings: [
+        {
+          exchangeName: GAMES_DOMAIN_EXCHANGE,
+          routingKeys: [...SUPPORTED_MONEY_FLOW_EVENTS],
+        },
+      ],
+      handleMessage: (envelope) => this.handleEnvelope(envelope),
     });
 
-    const { queue } = await this.channel.assertQueue(GAMES_MONEY_FLOW_QUEUE, {
-      durable: true,
-    });
-
-    for (const routingKey of [
-      BET_DEBIT_REQUESTED,
-      BET_REFUND_REQUESTED,
-      CASHOUT_CREDIT_REQUESTED,
-    ]) {
-      await this.channel.bindQueue(queue, GAMES_DOMAIN_EXCHANGE, routingKey);
-    }
-
-    await this.channel.consume(queue, (message) => {
-      void this.handleMessage(message);
-    });
+    await this.consumer.start();
   }
 
   async onModuleDestroy(): Promise<void> {
-    await this.channel?.close();
-    await this.connection?.close();
+    await this.consumer?.stop();
   }
 
-  private async handleMessage(message: ConsumeMessage | null): Promise<void> {
-    if (!message || !this.channel) {
-      return;
-    }
-
-    try {
-      await RequestContext.create(this.orm.em, async () => {
-        const envelope = JSON.parse(message.content.toString()) as BrokerEnvelope;
-
-        switch (envelope.eventType) {
-          case BET_DEBIT_REQUESTED:
-            await this.walletMoneyFlowService.handleBetDebitRequested(
-              envelope as BrokerEnvelope<BetDebitRequestedData>,
-            );
-            break;
-          case BET_REFUND_REQUESTED:
-            await this.walletMoneyFlowService.handleBetRefundRequested(
-              envelope as BrokerEnvelope<BetRefundRequestedData>,
-            );
-            break;
-          case CASHOUT_CREDIT_REQUESTED:
-            await this.walletMoneyFlowService.handleCashoutCreditRequested(
-              envelope as BrokerEnvelope<CashoutCreditRequestedData>,
-            );
-            break;
-          default:
-            this.logger.warn(
-              `Ignoring unsupported money-flow event ${envelope.eventType}`,
-            );
-        }
-      });
-
-      this.channel.ack(message);
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Money-flow handling failed: ${reason}`);
-      this.channel.nack(message, false, true);
-    }
+  private async handleEnvelope(envelope: BrokerEnvelope): Promise<void> {
+    await RequestContext.create(this.orm.em, async () => {
+      switch (envelope.eventType) {
+        case BET_DEBIT_REQUESTED:
+          await this.walletMoneyFlowService.handleBetDebitRequested(
+            envelope as BrokerEnvelope<BetDebitRequestedData>,
+          );
+          break;
+        case BET_REFUND_REQUESTED:
+          await this.walletMoneyFlowService.handleBetRefundRequested(
+            envelope as BrokerEnvelope<BetRefundRequestedData>,
+          );
+          break;
+        case CASHOUT_CREDIT_REQUESTED:
+          await this.walletMoneyFlowService.handleCashoutCreditRequested(
+            envelope as BrokerEnvelope<CashoutCreditRequestedData>,
+          );
+          break;
+      }
+    });
   }
 }

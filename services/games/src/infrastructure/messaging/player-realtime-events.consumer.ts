@@ -1,11 +1,5 @@
 import { MikroORM, RequestContext } from "@mikro-orm/core";
 import {
-  type Channel,
-  type ChannelModel,
-  type ConsumeMessage,
-  connect,
-} from "amqplib";
-import {
   Injectable,
   Logger,
   type OnModuleDestroy,
@@ -17,6 +11,7 @@ import {
   WALLET_DEBITED,
   type BetRejectedData,
   type BrokerEnvelope,
+  ResilientAmqpConsumer,
   type WalletCreditedData,
   type WalletDebitedData,
 } from "@crash/messaging";
@@ -28,14 +23,20 @@ const WALLETS_DOMAIN_EXCHANGE = "wallets.domain";
 const PLAYER_REALTIME_WALLET_EVENTS_QUEUE =
   "games.player-realtime.wallet-events";
 const PLAYER_REALTIME_BET_EVENTS_QUEUE = "games.player-realtime.bet-events";
+const PLAYER_REALTIME_PREFETCH = 16;
+const SUPPORTED_PLAYER_REALTIME_WALLET_EVENTS = [
+  WALLET_CREDITED,
+  WALLET_DEBITED,
+] as const;
+const SUPPORTED_PLAYER_REALTIME_BET_EVENTS = [BET_REJECTED] as const;
 
 @Injectable()
 export class PlayerRealtimeEventsConsumer
   implements OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(PlayerRealtimeEventsConsumer.name);
-  private connection: ChannelModel | null = null;
-  private channel: Channel | null = null;
+  private walletEventsConsumer: ResilientAmqpConsumer | null = null;
+  private betEventsConsumer: ResilientAmqpConsumer | null = null;
 
   constructor(
     private readonly orm: MikroORM,
@@ -53,127 +54,78 @@ export class PlayerRealtimeEventsConsumer
       return;
     }
 
-    this.connection = await connect(rabbitMqUrl);
-    this.channel = await this.connection.createChannel();
+    this.walletEventsConsumer = new ResilientAmqpConsumer({
+      name: PLAYER_REALTIME_WALLET_EVENTS_QUEUE,
+      rabbitMqUrl,
+      queueName: PLAYER_REALTIME_WALLET_EVENTS_QUEUE,
+      prefetch: PLAYER_REALTIME_PREFETCH,
+      supportedEventTypes: SUPPORTED_PLAYER_REALTIME_WALLET_EVENTS,
+      logger: this.logger,
+      bindings: [
+        {
+          exchangeName: WALLETS_DOMAIN_EXCHANGE,
+          routingKeys: [...SUPPORTED_PLAYER_REALTIME_WALLET_EVENTS],
+        },
+      ],
+      handleMessage: (envelope) => this.handleWalletEnvelope(envelope),
+    });
 
-    await this.bindWalletEventsQueue();
-    await this.bindBetEventsQueue();
+    this.betEventsConsumer = new ResilientAmqpConsumer({
+      name: PLAYER_REALTIME_BET_EVENTS_QUEUE,
+      rabbitMqUrl,
+      queueName: PLAYER_REALTIME_BET_EVENTS_QUEUE,
+      prefetch: PLAYER_REALTIME_PREFETCH,
+      supportedEventTypes: SUPPORTED_PLAYER_REALTIME_BET_EVENTS,
+      logger: this.logger,
+      bindings: [
+        {
+          exchangeName: GAMES_DOMAIN_EXCHANGE,
+          routingKeys: [...SUPPORTED_PLAYER_REALTIME_BET_EVENTS],
+        },
+      ],
+      handleMessage: (envelope) => this.handleBetEnvelope(envelope),
+    });
+
+    await Promise.all([
+      this.walletEventsConsumer.start(),
+      this.betEventsConsumer.start(),
+    ]);
   }
 
   async onModuleDestroy(): Promise<void> {
-    await this.channel?.close();
-    await this.connection?.close();
+    await Promise.all([
+      this.walletEventsConsumer?.stop(),
+      this.betEventsConsumer?.stop(),
+    ]);
   }
 
-  private async bindWalletEventsQueue(): Promise<void> {
-    if (!this.channel) {
-      return;
+  private async handleWalletEnvelope(envelope: BrokerEnvelope): Promise<void> {
+    switch (envelope.eventType) {
+      case WALLET_CREDITED:
+        await this.enqueueWalletBalanceUpdated(
+          envelope as BrokerEnvelope<WalletCreditedData>,
+          "credit",
+        );
+        break;
+      case WALLET_DEBITED:
+        await this.enqueueWalletBalanceUpdated(
+          envelope as BrokerEnvelope<WalletDebitedData>,
+          "debit",
+        );
+        break;
     }
-
-    await this.channel.assertExchange(WALLETS_DOMAIN_EXCHANGE, "topic", {
-      durable: true,
-    });
-
-    const { queue } = await this.channel.assertQueue(
-      PLAYER_REALTIME_WALLET_EVENTS_QUEUE,
-      { durable: true },
-    );
-
-    for (const routingKey of [WALLET_CREDITED, WALLET_DEBITED]) {
-      await this.channel.bindQueue(queue, WALLETS_DOMAIN_EXCHANGE, routingKey);
-    }
-
-    await this.channel.consume(queue, (message) => {
-      void this.handleWalletMessage(message);
-    });
   }
 
-  private async bindBetEventsQueue(): Promise<void> {
-    if (!this.channel) {
-      return;
-    }
-
-    await this.channel.assertExchange(GAMES_DOMAIN_EXCHANGE, "topic", {
-      durable: true,
-    });
-
-    const { queue } = await this.channel.assertQueue(
-      PLAYER_REALTIME_BET_EVENTS_QUEUE,
-      { durable: true },
-    );
-
-    await this.channel.bindQueue(queue, GAMES_DOMAIN_EXCHANGE, BET_REJECTED);
-
-    await this.channel.consume(queue, (message) => {
-      void this.handleBetMessage(message);
-    });
-  }
-
-  private async handleWalletMessage(
-    message: ConsumeMessage | null,
-  ): Promise<void> {
-    if (!message || !this.channel) {
-      return;
-    }
-
-    try {
-      const envelope = JSON.parse(message.content.toString()) as BrokerEnvelope;
-
+  private async handleBetEnvelope(envelope: BrokerEnvelope): Promise<void> {
+    await RequestContext.create(this.orm.em, async () => {
       switch (envelope.eventType) {
-        case WALLET_CREDITED:
-          await this.enqueueWalletBalanceUpdated(
-            envelope as BrokerEnvelope<WalletCreditedData>,
-            "credit",
+        case BET_REJECTED:
+          await this.enqueueRejectedBetUpdated(
+            envelope as BrokerEnvelope<BetRejectedData>,
           );
           break;
-        case WALLET_DEBITED:
-          await this.enqueueWalletBalanceUpdated(
-            envelope as BrokerEnvelope<WalletDebitedData>,
-            "debit",
-          );
-          break;
-        default:
-          this.logger.warn(
-            `Ignoring unsupported player realtime wallet event ${envelope.eventType}`,
-          );
       }
-
-      this.channel.ack(message);
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Player realtime wallet event failed: ${reason}`);
-      this.channel.nack(message, false, true);
-    }
-  }
-
-  private async handleBetMessage(message: ConsumeMessage | null): Promise<void> {
-    if (!message || !this.channel) {
-      return;
-    }
-
-    try {
-      await RequestContext.create(this.orm.em, async () => {
-        const envelope = JSON.parse(message.content.toString()) as BrokerEnvelope;
-
-        switch (envelope.eventType) {
-          case BET_REJECTED:
-            await this.enqueueRejectedBetUpdated(
-              envelope as BrokerEnvelope<BetRejectedData>,
-            );
-            break;
-          default:
-            this.logger.warn(
-              `Ignoring unsupported player realtime bet event ${envelope.eventType}`,
-            );
-        }
-      });
-
-      this.channel.ack(message);
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Player realtime bet event failed: ${reason}`);
-      this.channel.nack(message, false, true);
-    }
+    });
   }
 
   private async enqueueWalletBalanceUpdated(
